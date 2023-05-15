@@ -1,4 +1,14 @@
 {
   "name": "jira-bz",
-  "packageManager": "yarn@3.5.0"
+  "packageManager": "yarn@3.5.0",
+  "devDependencies": {
+    "@parcel/config-webextension": "^2.8.3",
+    "parcel": "^2.8.3",
+    "web-ext": "^7.6.0"
+  },
+  "scripts": {
+    "start": "parcel watch src/manifest.json --host localhost --config @parcel/config-webextension",
+    "build": "parcel build src/manifest.json --config @parcel/config-webextension",
+    "start:firefox": "web-ext run -t firefox-desktop --source-dir ./dist/ --pref extensions.manifestV3.enabled=true"
+  }
 }
