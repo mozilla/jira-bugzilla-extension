@@ -21,6 +21,10 @@
     "permissions": [
         "cookies",
         "scripting",
-        "https://bugzilla.mozilla.org/*"
+        "https://bugzilla.mozilla.org/*",
+        "https://mozilla-hub.atlassian.net/rest/api/*"
+    ],
+    "web_accessible_resources": [
+        "icons/*"
     ]
 }
