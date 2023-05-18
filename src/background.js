@@ -194,6 +194,40 @@ class BzJira {
     this.bugId = null;
   }
 
+  checkPriority(jira, bz) {
+    const priorityMap = {
+      highest: 'P1',
+      high: 'P2',
+      medium: 'P3',
+      low: 'P4',
+      lowest: 'P5',
+    };
+    return priorityMap[jira] === bz;
+  }
+
+  checkStatus(jira, bz) {
+    const statusMap = {
+      'In Review': 'ASSIGNED',
+      'In Progress': 'ASSIGNED',
+      New: 'NEW',
+      Open: 'NEW',
+      Open: 'UNCONFIRMED',
+      New: 'UNCONFIRMED',
+      Reopened: 'REOPENED',
+      Closed: 'RESOLVED',
+    };
+    return statusMap[jira] === bz;
+  }
+
+  checkEqual(jira, bz) {
+    if (jira === null && (bz === '---' || bz === 'nobody@mozilla.org')) {
+      return true;
+    }
+    if (jira && bz) {
+      return jira.trim() === bz.trim();
+    }
+  }
+
   async executeGetRestURL(tabId, func, args) {
     return browser.scripting.executeScript({
       func,
@@ -291,26 +325,45 @@ class BzJira {
         );
       }
 
+      const jiraStatus = JIRAData.fields.status.name.replace(' (migrated)', '');
       const comparisonData = {
         title: {
           jira: JIRAData.fields.summary,
           bz: bugData.summary,
+          matches: this.checkEqual(JIRAData.fields.summary, bugData.summary),
         },
         assignee: {
-          jira: JIRAData.fields.assignee,
+          jira: JIRAData.fields.assignee
+            ? JIRAData.fields.assignee
+            : 'Not assigned',
           bz: bugData.assigned_to,
+          matches: this.checkEqual(
+            JIRAData.fields.assignee,
+            bugData.assigned_to,
+          ),
         },
         status: {
-          jira: JIRAData.fields.status.name.replace(' (migrated)', ''),
+          jira: jiraStatus,
           bz: bugData.status,
+          matches: this.checkStatus(jiraStatus, bugData.status),
         },
         priority: {
           jira: JIRAData.fields.priority.name,
           bz: bugData.priority,
+          matches: this.checkPriority(
+            JIRAData.fields.priority.name,
+            bugData.priority,
+          ),
         },
         points: {
-          jira: JIRAData.fields.customfield_10037,
+          jira: JIRAData.fields.customfield_10037
+            ? JIRAData.fields.customfield_10037
+            : '---',
           bz: bugData.cf_fx_points,
+          matches: this.checkEqual(
+            JIRAData.fields.customfield_10037,
+            bugData.cf_fx_points,
+          ),
         },
       };
       return {

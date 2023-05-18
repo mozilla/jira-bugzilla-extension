@@ -49,13 +49,16 @@ browser.runtime.sendMessage({ greeting: 'getComparisonData' }, (response) => {
   th0.textContent = 'Field';
 
   const th1 = document.createElement('th');
-  th1.textContent = 'JIRA';
+  th1.textContent = 'Matches?';
   const th2 = document.createElement('th');
-  th2.textContent = 'Bugzilla';
+  th2.textContent = 'JIRA';
+  const th3 = document.createElement('th');
+  th3.textContent = 'Bugzilla';
 
   thRow.appendChild(th0);
   thRow.appendChild(th1);
   thRow.appendChild(th2);
+  thRow.appendChild(th3);
   thead.appendChild(thRow);
   table.appendChild(thead);
 
@@ -65,14 +68,23 @@ browser.runtime.sendMessage({ greeting: 'getComparisonData' }, (response) => {
     td0.textContent = item;
 
     const td1 = document.createElement('td');
-    td1.textContent = comparisonData[item].jira;
+    if (typeof comparisonData[item].matches === 'undefined') {
+      td1.textContent = 'N/A';
+    } else {
+      td1.textContent = comparisonData[item].matches ? ' ✅ ' : '⛔️';
+    }
+    td1.className = 'match';
 
     const td2 = document.createElement('td');
-    td2.textContent = comparisonData[item].bz;
+    td2.textContent = comparisonData[item].jira;
+
+    const td3 = document.createElement('td');
+    td3.textContent = comparisonData[item].bz;
 
     tr.appendChild(td0);
     tr.appendChild(td1);
     tr.appendChild(td2);
+    tr.appendChild(td3);
 
     table.appendChild(tr);
   }

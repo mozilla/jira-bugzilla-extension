@@ -33,7 +33,11 @@ th, td {
 }
 
 td {
-  min-width: 40%;
+  min-width: 30%;
+}
+
+td.match {
+  min-width: 10%;
 }
 
 @media (prefers-color-scheme: dark) {
