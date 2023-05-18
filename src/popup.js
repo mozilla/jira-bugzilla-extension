@@ -1,4 +1,12 @@
-console.log('Popup script running');
+/*
+ * When opened this popup script sends a message to the background script to request
+ * the comparison data for JIRA and BZ.
+ *
+ * Once the data is returned it's rendered. This is currently using DOM methods to build the
+ * nodes and insert them. This works since it's not much HTML but if this grows, switching
+ * to a more developer friendly method would make sense.
+ *
+ */
 
 browser.runtime.sendMessage(
   { greeting: "getComparisonData" },
@@ -6,7 +14,6 @@ browser.runtime.sendMessage(
     if (!response) {
       return;
     }
-    console.log(response);
     const { comparisonData, bugId, jiraIssueID, error, errorTitle } = response;
     const dataPlaceholder = document.getElementById('data');
     dataPlaceholder.innerHTML = '';
@@ -51,7 +58,6 @@ browser.runtime.sendMessage(
     thRow.appendChild(th2);
     thead.appendChild(thRow);
     table.appendChild(thead);
-
 
     for (let item in comparisonData) {
       const tr = document.createElement('tr');

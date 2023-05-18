@@ -1,3 +1,35 @@
+/*
+ * This background script has a few different roles.
+ *
+ * It contains a content script that's injected into bugzilla pages, the content
+ * script introspects various bits of data needed.
+ *
+ * The Pages that are injected into are currently buglists (buglist.cgi) and the
+ * main bug page (show_bug.cgi).
+ *
+ * ## buglist.cgi
+ *
+ * The content script gets the REST API URL from the link in buglist.cgi, this makes
+ * it easier to ensure that the API data matches up to the request. That said the REST
+ * API call won't necessarily match the same sort as the web-page response.
+ *
+ * This means that the API response could request the same number of entries but get different entries.
+ *
+ * To fix that we're currently using the cookie API to get the LASTORDER cookie value and use that
+ * to inform the sort on the REST call matches the web-page.
+ *
+ * The API request returns see_also data which is then introspected for JIRA links. These are then
+ * used to populate the last column of the buglist table.
+ *
+ * ## show_bug.cgi
+ *
+ * Here'we we're just looking to grab the bug from the URL and then we write the JIRA link into the page.
+ * The BZ bug id and the Jira link are passed back to the background script so that these can be used by the popup script
+ * in the page action.
+ *
+ */
+
+
 const BZ_BUGLIST_URL_BASE = 'https://bugzilla.mozilla.org/buglist.cgi';
 const BZ_BUG_URL_BASE = 'https://bugzilla.mozilla.org/show_bug.cgi';
 const BZ_LASTORDER_COOKIE = 'LASTORDER';
@@ -146,15 +178,6 @@ function BZContentScript(params) {
 }
 
 
-export function executeGetRestURL(tabId, func, args) {
-  return browser.scripting.executeScript({
-    func,
-    args,
-    target: {
-      tabId,
-    },
-  });
-}
 
 
 class BzJira {
@@ -162,6 +185,16 @@ class BzJira {
     this.bugApiURL = null;
     this.jiraIssueID = null;
     this.bugId = null;
+  }
+
+  async executeGetRestURL (tabId, func, args) {
+    return browser.scripting.executeScript({
+      func,
+      args,
+      target: {
+        tabId,
+      },
+    });
   }
 
   handleTabUpdates = async (tabId, changeInfo) => {
@@ -184,7 +217,7 @@ class BzJira {
         BZ_BUG_URL_BASE,
       }];
 
-      const scriptResponse = await executeGetRestURL(tabId, BZContentScript, args);
+      const scriptResponse = await this.executeGetRestURL(tabId, BZContentScript, args);
 
       // Store the results on the class when provided.
       if (scriptResponse.length && scriptResponse[0].result) {
