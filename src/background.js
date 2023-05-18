@@ -15,8 +15,7 @@
  *
  * This means that the API response could request the same number of entries but get different entries.
  *
- * To fix that we're currently using the cookie API to get the LASTORDER cookie value and use that
- * to inform the sort on the REST call matches the web-page.
+ * To fix that we're currently looking up the sort params from the short link to ensure the sort on the REST call matches the web-page.
  *
  * The API request returns see_also data which is then introspected for JIRA links. These are then
  * used to populate the last column of the buglist table.
@@ -31,7 +30,6 @@
 
 const BZ_BUGLIST_URL_BASE = 'https://bugzilla.mozilla.org/buglist.cgi';
 const BZ_BUG_URL_BASE = 'https://bugzilla.mozilla.org/show_bug.cgi';
-const BZ_LASTORDER_COOKIE = 'LASTORDER';
 const JIRA_API_ISSUE_URL_BASE =
   'https://mozilla-hub.atlassian.net/rest/api/latest/issue/';
 
@@ -43,8 +41,9 @@ function BZContentScript(params) {
   // To be able to sort the same way as the web result, the fields in the order
   // list need to be added to the included fields in the API call.
   const BZ_INCLUDED_FIELDS = ['id', 'see_also'];
-  const ORDER_LIST = params.lastOrder
-    ? decodeURIComponent(params.lastOrder).replaceAll('bug_', '').split(',')
+  const orderParams = getOrderParams();
+  const ORDER_LIST = orderParams
+    ? orderParams.replaceAll('bug_', '').split(',')
     : [];
   const BZ_FIELDS = new Set([...BZ_INCLUDED_FIELDS, ...ORDER_LIST]);
 
@@ -59,6 +58,16 @@ function BZContentScript(params) {
     const queryLinks = document.querySelectorAll('.bz_query_links a');
     if (queryLinks.length && queryLinks[0].textContent === 'REST') {
       return queryLinks[0].href;
+    }
+  }
+
+  function getOrderParams() {
+    const queryParams = document.querySelector(
+      '.bz_query_remember input[name=newquery]',
+    )?.value;
+    if (queryParams) {
+      const params = new URLSearchParams(queryParams);
+      return params.get('order');
     }
   }
 
@@ -78,9 +87,7 @@ function BZContentScript(params) {
       pageLimit !== null && pageLimit >= 0 ? pageLimit : 500,
     );
 
-    // This value was passed to the content script having been looked up
-    // from the LASTORDER cookie.
-    apiParams.set('order', decodeURIComponent(params.lastOrder));
+    apiParams.set('order', orderParams);
 
     return apiURL;
   }
@@ -208,16 +215,9 @@ class BzJira {
         browser.pageAction.hide(tabId);
       }
 
-      // This cookie contains info on the last order used in bugzilla.
-      const lastOrder = await browser.cookies.get({
-        url: changeInfo.url,
-        name: BZ_LASTORDER_COOKIE,
-      });
-
       // Params to pass to the content script.
       const args = [
         {
-          lastOrder: lastOrder.value,
           BZ_BUGLIST_URL_BASE,
           BZ_BUG_URL_BASE,
         },
@@ -228,6 +228,10 @@ class BzJira {
         BZContentScript,
         args,
       );
+
+      if (scriptResponse.length && scriptResponse[0].error) {
+        console.log(scriptResponse[0].error);
+      }
 
       // Store the results on the class when provided.
       if (scriptResponse.length && scriptResponse[0].result) {

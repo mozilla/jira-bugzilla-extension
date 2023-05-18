@@ -19,7 +19,6 @@
         "default_popup": "popup.html"
     },
     "permissions": [
-        "cookies",
         "scripting",
         "https://bugzilla.mozilla.org/*",
         "https://mozilla-hub.atlassian.net/rest/api/*"
