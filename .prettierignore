@@ -1,0 +1,11 @@
+# exclude everything by default
+*.*
+# exclude these directories
+/coverage/
+/dist-zip/
+/dist/
+# safe-list files we want to process
+!*.html
+!*.js
+!*.md
+!*.scss

@@ -29,24 +29,24 @@
  *
  */
 
-
 const BZ_BUGLIST_URL_BASE = 'https://bugzilla.mozilla.org/buglist.cgi';
 const BZ_BUG_URL_BASE = 'https://bugzilla.mozilla.org/show_bug.cgi';
 const BZ_LASTORDER_COOKIE = 'LASTORDER';
-const JIRA_API_ISSUE_URL_BASE = 'https://mozilla-hub.atlassian.net/rest/api/latest/issue/';
+const JIRA_API_ISSUE_URL_BASE =
+  'https://mozilla-hub.atlassian.net/rest/api/latest/issue/';
 
 function BZContentScript(params) {
   const BZ_BUG_API_URL_BASE = 'https://bugzilla.mozilla.org/rest/bug/';
-  const JIRA_URL_RX = /^https:\/\/mozilla-hub.atlassian.net\/browse\/([A-Z-0-9]+)$/';
+  const JIRA_URL_RX =
+    /^https:\/\/mozilla-hub.atlassian.net\/browse\/([A-Z-0-9]+)$/;
 
   // To be able to sort the same way as the web result, the fields in the order
   // list need to be added to the included fields in the API call.
-  const BZ_INCLUDED_FIELDS = [
-    'id',
-    'see_also',
-  ];
-  const ORDER_LIST = params.lastOrder ? decodeURIComponent(params.lastOrder).replaceAll('bug_', '').split(',') : [];
-  const BZ_FIELDS = new Set([ ...BZ_INCLUDED_FIELDS, ...ORDER_LIST]);
+  const BZ_INCLUDED_FIELDS = ['id', 'see_also'];
+  const ORDER_LIST = params.lastOrder
+    ? decodeURIComponent(params.lastOrder).replaceAll('bug_', '').split(',')
+    : [];
+  const BZ_FIELDS = new Set([...BZ_INCLUDED_FIELDS, ...ORDER_LIST]);
 
   function getBugId(url) {
     // Get the bug id from the URL
@@ -67,13 +67,16 @@ function BZContentScript(params) {
     const apiParams = apiURL.searchParams;
 
     // Override include_fields to add see_also so we can infer Jira Links.
-    apiParams.set('include_fields', [ ...BZ_FIELDS ].join(','));
+    apiParams.set('include_fields', [...BZ_FIELDS].join(','));
 
     // Check the limit of the current page and make sure the API call matches.
     const pageURL = new URL(window.location);
     const pageParams = pageURL.searchParams;
     const pageLimit = pageParams.get('limit');
-    apiParams.set('limit', pageLimit !== null && pageLimit >= 0 ? pageLimit : 500);
+    apiParams.set(
+      'limit',
+      pageLimit !== null && pageLimit >= 0 ? pageLimit : 500,
+    );
 
     // This value was passed to the content script having been looked up
     // from the LASTORDER cookie.
@@ -82,20 +85,20 @@ function BZContentScript(params) {
     return apiURL;
   }
 
-  function extractJIRALinkFromSeeAlso (links) {
+  function extractJIRALinkFromSeeAlso(links) {
     for (let link of links) {
-      const matches = link.match(JIRA_URL_RX)
+      const matches = link.match(JIRA_URL_RX);
       if (matches) {
         return {
           href: matches[0],
           text: matches[1],
-        }
+        };
       }
     }
   }
 
   async function fetchBZData(url) {
-    const result = await fetch(url)
+    const result = await fetch(url);
     return await result.json();
   }
 
@@ -106,7 +109,7 @@ function BZContentScript(params) {
     // Prospectively create the column since to minimize jank.
     const header = document.createElement('th');
     header.id = 'bz-jira-table-header';
-    const headerText = header.textContent = 'Jira Link';
+    const headerText = (header.textContent = 'Jira Link');
     // This should be enough width to allow for a JIRA link code of
     // XXXXXX-XXX so that the page doesn't move around when the data has loaded.
     header.style.minWidth = '7.5em';
@@ -121,7 +124,7 @@ function BZContentScript(params) {
       const bugRow = document.getElementById(`b${result.id}`);
 
       if (bugRow) {
-        const jiraLink = extractJIRALinkFromSeeAlso(result.see_also));
+        const jiraLink = extractJIRALinkFromSeeAlso(result.see_also);
         let cell = document.createElement('td');
         if (jiraLink) {
           let newLink = document.createElement('a');
@@ -165,7 +168,7 @@ function BZContentScript(params) {
       jiraIssueID: jiraIssueData?.text,
       bugApiURL: bugApiURL.toString(),
       bugId,
-    }
+    };
   }
 
   if (window.location.href.startsWith(params.BZ_BUGLIST_URL_BASE)) {
@@ -177,17 +180,14 @@ function BZContentScript(params) {
   }
 }
 
-
-
-
 class BzJira {
-  constructor () {
+  constructor() {
     this.bugApiURL = null;
     this.jiraIssueID = null;
     this.bugId = null;
   }
 
-  async executeGetRestURL (tabId, func, args) {
+  async executeGetRestURL(tabId, func, args) {
     return browser.scripting.executeScript({
       func,
       args,
@@ -198,7 +198,11 @@ class BzJira {
   }
 
   handleTabUpdates = async (tabId, changeInfo) => {
-    if (changeInfo.url && (changeInfo.url.startsWith(BZ_BUGLIST_URL_BASE) || changeInfo.url.startsWith(BZ_BUG_URL_BASE))) {
+    if (
+      changeInfo.url &&
+      (changeInfo.url.startsWith(BZ_BUGLIST_URL_BASE) ||
+        changeInfo.url.startsWith(BZ_BUG_URL_BASE))
+    ) {
       // Only Apply to buglists.
       if (changeInfo.url.startsWith(BZ_BUGLIST_URL_BASE)) {
         browser.pageAction.hide(tabId);
@@ -211,13 +215,19 @@ class BzJira {
       });
 
       // Params to pass to the content script.
-      const args = [{
-        lastOrder: lastOrder.value,
-        BZ_BUGLIST_URL_BASE,
-        BZ_BUG_URL_BASE,
-      }];
+      const args = [
+        {
+          lastOrder: lastOrder.value,
+          BZ_BUGLIST_URL_BASE,
+          BZ_BUG_URL_BASE,
+        },
+      ];
 
-      const scriptResponse = await this.executeGetRestURL(tabId, BZContentScript, args);
+      const scriptResponse = await this.executeGetRestURL(
+        tabId,
+        BZContentScript,
+        args,
+      );
 
       // Store the results on the class when provided.
       if (scriptResponse.length && scriptResponse[0].result) {
@@ -232,20 +242,26 @@ class BzJira {
         browser.pageAction.show(tabId);
       }
     }
-  }
+  };
 
   getComparisonData = async () => {
     // Customize fields for BZ
     const bzBugApiURL = new URL(this.bugApiURL);
-    bzBugApiURL.searchParams.set('include_fields', ['id,summary,assigned_to,priority,status,cf_fx_points']);
+    bzBugApiURL.searchParams.set('include_fields', [
+      'id,summary,assigned_to,priority,status,cf_fx_points',
+    ]);
 
     // Customize Fields for JIRA
     const jiraApiURL = new URL(`${JIRA_API_ISSUE_URL_BASE}${this.jiraIssueID}`);
-    jiraApiURL.searchParams.set('fields', ['summary,assignee,priority,status,customfield_10037']);
+    jiraApiURL.searchParams.set('fields', [
+      'summary,assignee,priority,status,customfield_10037',
+    ]);
 
     if (this.jiraIssueID) {
-
-      const [jiraAPIData, bzData] = await Promise.all([fetch(jiraApiURL), fetch(bzBugApiURL)]);
+      const [jiraAPIData, bzData] = await Promise.all([
+        fetch(jiraApiURL),
+        fetch(bzBugApiURL),
+      ]);
 
       let JIRAData;
       let bugData;
@@ -266,40 +282,52 @@ class BzJira {
         const bzDataJSON = await bzData.json();
         bugData = bzDataJSON.bugs[0];
       } else {
-        throw new Error(`Bugzilla API request failed with error status ${bzData.status}.`);
+        throw new Error(
+          `Bugzilla API request failed with error status ${bzData.status}.`,
+        );
       }
 
       const comparisonData = {
         title: {
           jira: JIRAData.fields.summary,
-          bz: bugData.summary
+          bz: bugData.summary,
         },
         assignee: {
           jira: JIRAData.fields.assignee,
-          bz: bugData.assigned_to
+          bz: bugData.assigned_to,
         },
         status: {
           jira: JIRAData.fields.status.name.replace(' (migrated)', ''),
-          bz: bugData.status
+          bz: bugData.status,
         },
         priority: {
           jira: JIRAData.fields.priority.name,
-          bz: bugData.priority
+          bz: bugData.priority,
         },
         points: {
           jira: JIRAData.fields.customfield_10037,
-          bz: bugData.cf_fx_points
+          bz: bugData.cf_fx_points,
         },
       };
-      return { comparisonData, bugId: this.bugId, jiraIssueID: this.jiraIssueID };
+      return {
+        comparisonData,
+        bugId: this.bugId,
+        jiraIssueID: this.jiraIssueID,
+      };
     }
-  }
+  };
 
-  handleMessage = async (request,sender,sendResponse) => {
+  handleMessage = async (request, sender, sendResponse) => {
     let that = this;
-    if (request.greeting === "getComparisonData" && sender.id === 'jira-bz@mozilla.com') {
+    if (
+      request.greeting === 'getComparisonData' &&
+      sender.id === 'jira-bz@mozilla.com'
+    ) {
       return new Promise(async (resolve) => {
-        let result = { errorTitle: 'No Linked JIRA Issue', error: 'No JIRA Issue has been linked to this bug yet!' };
+        let result = {
+          errorTitle: 'No Linked JIRA Issue',
+          error: 'No JIRA Issue has been linked to this bug yet!',
+        };
         if (that.jiraIssueID) {
           try {
             console.log('wat');
@@ -312,7 +340,7 @@ class BzJira {
       });
       return true;
     }
-  }
+  };
 }
 
 export async function initEvents() {
