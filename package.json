@@ -2,8 +2,6 @@
   "name": "jira-bz",
   "packageManager": "yarn@3.5.0",
   "devDependencies": {
-    "@babel/core": "^7.21.8",
-    "@babel/eslint-parser": "^7.21.8",
     "@parcel/config-webextension": "^2.8.3",
     "eslint": "^8.40.0",
     "eslint-config-prettier": "^8.8.0",
