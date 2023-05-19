@@ -1,33 +1,3 @@
-/*
- * This background script has a few different roles.
- *
- * It contains a content script that's injected into bugzilla pages, the content
- * script introspects various bits of data needed.
- *
- * The Pages that are injected into are currently buglists (buglist.cgi) and the
- * main bug page (show_bug.cgi).
- *
- * ## buglist.cgi
- *
- * The content script gets the REST API URL from the link in buglist.cgi, this makes
- * it easier to ensure that the API data matches up to the request. That said the REST
- * API call won't necessarily match the same sort as the web-page response.
- *
- * This means that the API response could request the same number of entries but get different entries.
- *
- * To fix that we're currently looking up the sort params from the short link to ensure the sort on the REST call matches the web-page.
- *
- * The API request returns see_also data which is then introspected for JIRA links. These are then
- * used to populate the last column of the buglist table.
- *
- * ## show_bug.cgi
- *
- * Here'we we're just looking to grab the bug from the URL and then we write the JIRA link into the page.
- * The BZ bug id and the Jira link are passed back to the background script so that these can be used by the popup script
- * in the page action.
- *
- */
-
 const BZ_BUGLIST_URL_BASE = 'https://bugzilla.mozilla.org/buglist.cgi';
 const BZ_BUG_URL_BASE = 'https://bugzilla.mozilla.org/show_bug.cgi';
 const JIRA_API_ISSUE_URL_BASE =
