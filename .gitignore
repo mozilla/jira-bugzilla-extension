@@ -5,8 +5,6 @@
 !/.yarn/releases
 !/.yarn/sdks
 
-dist
-.parcel-cache
 node_modules
 coverage
 .DS_Store
