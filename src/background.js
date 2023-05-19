@@ -358,7 +358,6 @@ class BzJira {
         };
         if (that.jiraIssueID) {
           try {
-            console.log('wat');
             result = await that.getComparisonData();
           } catch (e) {
             result = { errorTitle: 'API Error', error: e.message };
