@@ -193,9 +193,10 @@ class BzJira {
     if (jira === null && (bz === '---' || bz === 'nobody@mozilla.org')) {
       return true;
     }
-    if (jira && bz) {
+    if (jira?.trim && bz?.trim) {
       return jira.trim() === bz.trim();
     }
+    return false;
   }
 
   async executeGetRestURL(tabId, func, args) {
@@ -365,12 +366,11 @@ class BzJira {
         }
         resolve(result);
       });
-      return true;
     }
   };
 }
 
-export async function initEvents() {
+async function initEvents() {
   const BzJiraInst = new BzJira();
   browser.tabs.onUpdated.addListener(BzJiraInst.handleTabUpdates);
   browser.runtime.onMessage.addListener(BzJiraInst.handleMessage);
