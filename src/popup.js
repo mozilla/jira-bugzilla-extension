@@ -17,7 +17,7 @@ browser.runtime.sendMessage({ greeting: 'getComparisonData' }, (response) => {
   dataPlaceholder.innerHTML = '';
 
   // Setup the heading
-  const heading = document.createElement('h1');
+  const heading = document.createElement('h2');
 
   if (error) {
     heading.textContent = errorTitle;

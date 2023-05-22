@@ -62,16 +62,18 @@ function BZContentScript(params) {
     return apiURL;
   }
 
-  function extractJIRALinkFromSeeAlso(links) {
+  function extractJIRALinksFromSeeAlso(links) {
+    const jiraLinks = [];
     for (let link of links) {
       const matches = link.match(JIRA_URL_RX);
       if (matches) {
-        return {
+        jiraLinks.push({
           href: matches[0],
           text: matches[1],
-        };
+        });
       }
     }
+    return jiraLinks;
   }
 
   async function fetchBZData(url) {
@@ -101,14 +103,16 @@ function BZContentScript(params) {
       const bugRow = document.getElementById(`b${result.id}`);
 
       if (bugRow) {
-        const jiraLink = extractJIRALinkFromSeeAlso(result.see_also);
+        const jiraLinks = extractJIRALinksFromSeeAlso(result.see_also);
         let cell = document.createElement('td');
-        if (jiraLink) {
-          let newLink = document.createElement('a');
-          newLink.target = '_blank';
-          newLink.href = jiraLink.href;
-          newLink.textContent = jiraLink.text;
-          cell.appendChild(newLink);
+        if (jiraLinks?.length) {
+          for (const [i, link] of jiraLinks.entries()) {
+            let newLink = document.createElement('a');
+            newLink.target = '_blank';
+            newLink.href = link.href;
+            newLink.textContent = `${i > 0 ? ', ' : ''}${link.text}`;
+            cell.appendChild(newLink);
+          }
         }
         // Even if there's no JiraLink we'll want to add a td
         bugRow.appendChild(cell);
@@ -127,22 +131,26 @@ function BZContentScript(params) {
     const bzAPIData = await fetch(bugApiURL);
     const bugJSON = await bzAPIData.json();
     const bugData = bugJSON?.bugs[0];
-    const jiraIssueData = extractJIRALinkFromSeeAlso(bugData.see_also);
+    const jiraIssueData = extractJIRALinksFromSeeAlso(bugData.see_also);
 
-    if (jiraIssueData) {
+    if (jiraIssueData?.length) {
+      const jiraIssueIDs = [];
       const bugLink = document.getElementById('field-value-bug_id');
-      const jiraSpan = document.createElement('span');
-      const jiraLink = document.createElement('a');
-      jiraLink.href = jiraIssueData.href;
-      jiraLink.target = '_blank';
-      jiraSpan.textContent = ', JIRA: ';
-      jiraLink.textContent = jiraIssueData.text;
-      jiraSpan.appendChild(jiraLink);
-      bugLink.parentNode.insertBefore(jiraSpan, bugLink.nextSibling);
+      for (let link of jiraIssueData) {
+        const jiraSpan = document.createElement('span');
+        const jiraLink = document.createElement('a');
+        jiraLink.href = link.href;
+        jiraLink.target = '_blank';
+        jiraSpan.textContent = ', JIRA: ';
+        jiraLink.textContent = link.text;
+        jiraIssueIDs.push(link.text);
+        jiraSpan.appendChild(jiraLink);
+        bugLink.parentNode.insertBefore(jiraSpan, bugLink.nextSibling);
+      }
     }
 
     return {
-      jiraIssueID: jiraIssueData?.text,
+      jiraIssueID: jiraIssueData[0].text,
       bugApiURL: bugApiURL.toString(),
       bugId,
     };
