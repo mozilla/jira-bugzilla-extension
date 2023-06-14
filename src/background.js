@@ -1,177 +1,7 @@
-const BZ_BUGLIST_URL_BASE = 'https://bugzilla.mozilla.org/buglist.cgi';
-const BZ_BUG_URL_BASE = 'https://bugzilla.mozilla.org/show_bug.cgi';
-const JIRA_API_ISSUE_URL_BASE =
-  'https://mozilla-hub.atlassian.net/rest/api/latest/issue/';
+import * as config from './shared/config.js';
+import * as util from './shared/util.js';
 
-function BZContentScript(params) {
-  const BZ_BUG_API_URL_BASE = 'https://bugzilla.mozilla.org/rest/bug/';
-  const JIRA_URL_RX =
-    /^https:\/\/mozilla-hub.atlassian.net\/browse\/([A-Z-0-9]+)$/;
-
-  // To be able to sort the same way as the web result, the fields in the order
-  // list need to be added to the included fields in the API call.
-  const BZ_INCLUDED_FIELDS = ['id', 'see_also'];
-  const orderParams = getOrderParams();
-  const ORDER_LIST = orderParams
-    ? orderParams.replaceAll('bug_', '').split(',')
-    : [];
-  const BZ_FIELDS = new Set([...BZ_INCLUDED_FIELDS, ...ORDER_LIST]);
-
-  function getBugId(url) {
-    // Get the bug id from the URL
-    const bugURL = new URL(url);
-    const bugParams = bugURL.searchParams;
-    return bugParams.get('id');
-  }
-
-  function getBuglistRestURL() {
-    const queryLinks = document.querySelectorAll('.bz_query_links a');
-    if (queryLinks.length && queryLinks[0].textContent === 'REST') {
-      return queryLinks[0].href;
-    }
-  }
-
-  function getOrderParams() {
-    const queryParams = document.querySelector(
-      '.bz_query_remember input[name=newquery]',
-    )?.value;
-    if (queryParams) {
-      const params = new URLSearchParams(queryParams);
-      return params.get('order');
-    }
-  }
-
-  function getBuglistApiURL() {
-    const apiURL = new URL(getBuglistRestURL());
-    const apiParams = apiURL.searchParams;
-
-    // Override include_fields to add see_also so we can infer Jira Links.
-    apiParams.set('include_fields', [...BZ_FIELDS].join(','));
-
-    // Check the limit of the current page and make sure the API call matches.
-    const pageURL = new URL(window.location);
-    const pageParams = pageURL.searchParams;
-    const pageLimit = pageParams.get('limit');
-    apiParams.set(
-      'limit',
-      pageLimit !== null && pageLimit >= 0 ? pageLimit : 500,
-    );
-
-    apiParams.set('order', orderParams);
-
-    return apiURL;
-  }
-
-  function extractJIRALinksFromSeeAlso(links) {
-    const jiraLinks = [];
-    for (let link of links) {
-      const matches = link.match(JIRA_URL_RX);
-      if (matches) {
-        jiraLinks.push({
-          href: matches[0],
-          text: matches[1],
-        });
-      }
-    }
-    return jiraLinks;
-  }
-
-  async function fetchBZData(url) {
-    const result = await fetch(url);
-    return await result.json();
-  }
-
-  async function initBuglist() {
-    if (document.getElementById('bz-jira-table-header')) {
-      return;
-    }
-    // Prospectively create the column since to minimize jank.
-    const header = document.createElement('th');
-    header.id = 'bz-jira-table-header';
-    const headerText = (header.textContent = 'Jira Link');
-    // This should be enough width to allow for a JIRA link code of
-    // XXXXXX-XXX so that the page doesn't move around when the data has loaded.
-    header.style.minWidth = '7.5em';
-    document.querySelector('table.bz_buglist thead tr').appendChild(header);
-
-    // Now fetch the extra data needed to understand if the bug in the row has a jira link.
-    const response = await fetchBZData(getBuglistApiURL());
-
-    // iterate over the bugslist and grab the JIRA URL if it matches.
-    let bugsNotFoundCount = 0;
-    for (let result of response.bugs) {
-      const bugRow = document.getElementById(`b${result.id}`);
-
-      if (bugRow) {
-        const jiraLinks = extractJIRALinksFromSeeAlso(result.see_also);
-        let cell = document.createElement('td');
-        if (jiraLinks?.length) {
-          for (const [i, link] of jiraLinks.entries()) {
-            let newLink = document.createElement('a');
-            newLink.target = '_blank';
-            newLink.href = link.href;
-            newLink.textContent = `${i > 0 ? ', ' : ''}${link.text}`;
-            cell.appendChild(newLink);
-          }
-        }
-        // Even if there's no JiraLink we'll want to add a td
-        bugRow.appendChild(cell);
-      } else {
-        bugsNotFoundCount++;
-      }
-    }
-    console.warn(`${bugsNotFoundCount} bugs not found in the bug list table`);
-  }
-
-  async function initBug() {
-    const bugId = getBugId(window.location);
-    const bugApiURL = new URL(`${BZ_BUG_API_URL_BASE}${bugId}`);
-    bugApiURL.searchParams.set('include_fields', BZ_INCLUDED_FIELDS);
-
-    const bzAPIData = await fetch(bugApiURL);
-    const bugJSON = await bzAPIData.json();
-    const bugData = bugJSON?.bugs[0];
-    const jiraIssueData = extractJIRALinksFromSeeAlso(bugData.see_also);
-
-    if (jiraIssueData?.length) {
-      const jiraIssueIDs = [];
-      const bugLink = document.getElementById('field-value-bug_id');
-      for (let link of jiraIssueData) {
-        const jiraSpan = document.createElement('span');
-        const jiraLink = document.createElement('a');
-        jiraLink.href = link.href;
-        jiraLink.target = '_blank';
-        jiraSpan.textContent = ', JIRA: ';
-        jiraLink.textContent = link.text;
-        jiraIssueIDs.push(link.text);
-        jiraSpan.appendChild(jiraLink);
-        bugLink.parentNode.insertBefore(jiraSpan, bugLink.nextSibling);
-      }
-    }
-
-    return {
-      jiraIssueID: jiraIssueData[0].text,
-      bugApiURL: bugApiURL.toString(),
-      bugId,
-    };
-  }
-
-  if (window.location.href.startsWith(params.BZ_BUGLIST_URL_BASE)) {
-    initBuglist();
-  }
-
-  if (window.location.href.startsWith(params.BZ_BUG_URL_BASE)) {
-    return initBug();
-  }
-}
-
-class BzJira {
-  constructor() {
-    this.bugApiURL = null;
-    this.jiraIssueID = null;
-    this.bugId = null;
-  }
-
+export default class BzJira {
   checkPriority(jira, bz) {
     const priorityMap = {
       highest: 'P1',
@@ -179,26 +9,29 @@ class BzJira {
       medium: 'P3',
       low: 'P4',
       lowest: 'P5',
+      '(none)': '--',
     };
-    return priorityMap[jira] === bz;
+    return priorityMap[jira.toLowerCase()] === bz;
   }
 
   checkStatus(jira, bz) {
     const statusMap = {
-      'In Review': 'ASSIGNED',
-      'In Progress': 'ASSIGNED',
-      New: 'NEW',
-      Open: 'NEW',
-      Open: 'UNCONFIRMED',
-      New: 'UNCONFIRMED',
-      Reopened: 'REOPENED',
-      Closed: 'RESOLVED',
+      'In Review': ['ASSIGNED'],
+      'In Progress': ['ASSIGNED'],
+      New: ['NEW', 'UNCONFIRMED'],
+      Open: ['NEW', 'UNCONFIRMED'],
+      Reopened: ['REOPENED'],
+      Closed: ['RESOLVED'],
     };
-    return statusMap[jira] === bz;
+
+    return statusMap[jira].includes(bz);
   }
 
   checkEqual(jira, bz) {
-    if (jira === null && (bz === '---' || bz === 'nobody@mozilla.org')) {
+    if (
+      jira === null ||
+      (jira === undefined && (bz === '---' || bz === 'nobody@mozilla.org'))
+    ) {
       return true;
     }
     if (jira?.trim && bz?.trim) {
@@ -207,74 +40,44 @@ class BzJira {
     return false;
   }
 
-  async executeGetRestURL(tabId, func, args) {
-    return browser.scripting.executeScript({
-      func,
-      args,
-      target: {
-        tabId,
-      },
-    });
+  isValidJiraId(jiraIssueId) {
+    if (typeof jiraIssueId !== 'string') {
+      return false;
+    }
+    return /^[A-Z]+?-[0-9]+?$/.test(jiraIssueId);
   }
 
-  handleTabUpdates = async (tabId, changeInfo) => {
-    if (
-      changeInfo.url &&
-      (changeInfo.url.startsWith(BZ_BUGLIST_URL_BASE) ||
-        changeInfo.url.startsWith(BZ_BUG_URL_BASE))
-    ) {
-      // Only Apply to buglists.
-      if (changeInfo.url.startsWith(BZ_BUGLIST_URL_BASE)) {
-        browser.pageAction.hide(tabId);
-      }
-
-      // Params to pass to the content script.
-      const args = [
-        {
-          BZ_BUGLIST_URL_BASE,
-          BZ_BUG_URL_BASE,
-        },
-      ];
-
-      const scriptResponse = await this.executeGetRestURL(
-        tabId,
-        BZContentScript,
-        args,
-      );
-
-      if (scriptResponse.length && scriptResponse[0].error) {
-        console.log(scriptResponse[0].error);
-      }
-
-      // Store the results on the class when provided.
-      if (scriptResponse.length && scriptResponse[0].result) {
-        const { jiraIssueID, bugApiURL, bugId } = scriptResponse[0].result;
-        this.jiraIssueID = jiraIssueID;
-        this.bugApiURL = bugApiURL;
-        this.bugId = bugId;
-      }
-
-      // Only Apply to bug pages
-      if (changeInfo.url.startsWith(BZ_BUG_URL_BASE)) {
-        browser.pageAction.show(tabId);
-      }
+  isValidBugId(bugId) {
+    if (typeof bugId !== 'string') {
+      return false;
     }
-  };
+    const parsedBugNum = parseInt(bugId, 10);
+    return !isNaN(parsedBugNum);
+  }
 
-  getComparisonData = async () => {
+  getComparisonData = async (bugId, jiraIssueId) => {
+    if (!this.isValidBugId(bugId) || !this.isValidJiraId(jiraIssueId)) {
+      console.log('Invalid bug data');
+      return {};
+    }
+
     // Customize fields for BZ
-    const bzBugApiURL = new URL(this.bugApiURL);
+    const bzBugApiURL = new URL(
+      `${config.BZ_BUG_API_URL_BASE}${encodeURIComponent(bugId)}`,
+    );
     bzBugApiURL.searchParams.set('include_fields', [
       'id,summary,assigned_to,priority,status,cf_fx_points',
     ]);
 
     // Customize Fields for JIRA
-    const jiraApiURL = new URL(`${JIRA_API_ISSUE_URL_BASE}${this.jiraIssueID}`);
+    const jiraApiURL = new URL(
+      `${config.JIRA_API_ISSUE_URL_BASE}${encodeURIComponent(jiraIssueId)}`,
+    );
     jiraApiURL.searchParams.set('fields', [
       'summary,assignee,priority,status,customfield_10037',
     ]);
 
-    if (this.jiraIssueID) {
+    if (jiraIssueId) {
       const [jiraAPIData, bzData] = await Promise.all([
         fetch(jiraApiURL),
         fetch(bzBugApiURL),
@@ -305,19 +108,21 @@ class BzJira {
       }
 
       const jiraStatus = JIRAData.fields.status.name.replace(' (migrated)', '');
-      const comparisonData = {
+
+      const jiraAssignee =
+        JIRAData?.fields?.assignee?.emailAddress || 'Not assigned';
+
+      return {
         title: {
           jira: JIRAData.fields.summary,
           bz: bugData.summary,
           matches: this.checkEqual(JIRAData.fields.summary, bugData.summary),
         },
         assignee: {
-          jira: JIRAData.fields.assignee
-            ? JIRAData.fields.assignee
-            : 'Not assigned',
+          jira: jiraAssignee,
           bz: bugData.assigned_to,
           matches: this.checkEqual(
-            JIRAData.fields.assignee,
+            JIRAData?.fields?.assignee?.emailAddress,
             bugData.assigned_to,
           ),
         },
@@ -334,6 +139,7 @@ class BzJira {
             bugData.priority,
           ),
         },
+        /*
         points: {
           jira: JIRAData.fields.customfield_10037
             ? JIRAData.fields.customfield_10037
@@ -343,44 +149,190 @@ class BzJira {
             JIRAData.fields.customfield_10037,
             bugData.cf_fx_points,
           ),
-        },
-      };
-      return {
-        comparisonData,
-        bugId: this.bugId,
-        jiraIssueID: this.jiraIssueID,
+        }, */
       };
     }
   };
 
-  handleMessage = async (request, sender, sendResponse) => {
-    let that = this;
-    if (
-      request.greeting === 'getComparisonData' &&
-      sender.id === 'jira-bz@mozilla.com'
-    ) {
-      return new Promise(async (resolve) => {
-        let result = {
-          errorTitle: 'No Linked JIRA Issue',
-          error: 'No JIRA Issue has been linked to this bug yet!',
-        };
-        if (that.jiraIssueID) {
-          try {
-            result = await that.getComparisonData();
-          } catch (e) {
-            result = { errorTitle: 'API Error', error: e.message };
-          }
-        }
-        resolve(result);
+  /*
+   *  Validate and store the bugData.
+   *  Note: a single bz id, can point to multiple Jira ids whereas the reverse isn't possible.
+   *
+   */
+  validateBugData(bugData) {
+    console.log('bugData', bugData);
+    const newBugData = {
+      bugId: null,
+      jiraIssueIds: [],
+    };
+
+    if (bugData !== null) {
+      if (this.isValidBugId(bugData.bugId)) {
+        newBugData.bugId = bugData.bugId;
+      }
+      newBugData.jiraIssueIds = bugData.jiraIssueIds.filter(this.isValidJiraId);
+    } else {
+      console.log('bugData was null');
+    }
+
+    console.log('newBugData', newBugData);
+
+    return newBugData;
+  }
+
+  /*
+   * This call handles the ids sent by the content script.
+   *
+   */
+
+  async handleIdentifiersMessage(request, sender) {
+    // Throws if sender is invalid.
+    util.isValidSender(sender);
+
+    const validBugData = this.validateBugData(request.data);
+
+    // Store the id data using the BZ id as a key.
+    browser.storage.local.set({
+      [validBugData.bugId]: { jiraIssueIds: validBugData?.jiraIssueIds },
+    });
+
+    const tabId = sender.tab.id;
+    const data = await this.requestComparisonData();
+    this.setIconBadge(data, tabId);
+  }
+
+  requestComparisonData = async () => {
+    const currentTab = await browser.tabs.query({
+      currentWindow: true,
+      active: true,
+    });
+
+    if (!currentTab) {
+      console.log('No current tab, bailing!');
+      return;
+    }
+    const bugId = util.getBugId(currentTab[0].url);
+
+    if (!bugId) {
+      console.log('no BugId!');
+      return;
+    }
+
+    // Check storage for jira id data.
+    const cachedBugData = await browser.storage.local.get(bugId);
+    console.log('cachedBugData', cachedBugData);
+    const jiraIssueIds = cachedBugData[bugId]?.jiraIssueIds || [];
+
+    let result;
+    if (!jiraIssueIds.length) {
+      console.log('No linked Jira issues');
+      result = {
+        errorTitle: 'No Linked JIRA Issue',
+        error: 'No JIRA Issue has been linked to this bug yet!',
+      };
+    } else if (cachedBugData[bugId].comparisonData) {
+      console.log('Cached comparison data found');
+      result = cachedBugData[bugId].comparisonData;
+    } else {
+      console.log('Fetching Comparison Data');
+      try {
+        result = await this.getComparisonData(bugId, jiraIssueIds[0]);
+      } catch (e) {
+        result = { errorTitle: 'API Error', error: e.message };
+      }
+      await browser.storage.local.set({
+        [bugId]: { jiraIssueIds, comparisonData: result },
       });
     }
+
+    console.log('result', result);
+
+    return {
+      bugId,
+      jiraIssueIds,
+      comparisonData: result,
+    };
+  };
+
+  handleGetComparisonDataForPopup = async (request, sender) => {
+    console.log('handleGetComparisonDataForPopup');
+    // Throws if sender is invalid.
+    util.isValidSender(sender);
+    return await this.requestComparisonData(sender);
+  };
+
+  /*
+   * Message handler and dispatch.
+   */
+  handleMessage = async (request, sender) => {
+    if (typeof request.instruction !== 'string') {
+      throw new Error('Invalid instruction');
+    }
+
+    switch (request.instruction) {
+      case 'getComparisonDataForPopup':
+        return this.handleGetComparisonDataForPopup(request, sender);
+      case 'identifiersFromBugzilla':
+        return this.handleIdentifiersMessage(request, sender);
+    }
+  };
+
+  /*
+  async requestBugIdentifiers(tabId) {
+    if (this.currentBugData === null) {
+      const result = await browser.tabs.sendMessage(tabId, { 'instruction': 'requestBugIds' });
+
+      // Validate and store bug data.
+      this.currentBugData = this.validateBugData(result.data);
+      this.setActionStatusForTab(tabId);
+    } else {
+      console.log('bug data already present, noop');
+    }
+  }
+    */
+
+  setIconBadge(data, tabId) {
+    const { bugId, jiraIssueIds, comparisonData } = data;
+
+    if (bugId && jiraIssueIds.length > 0) {
+      let matchingData = true;
+
+      for (const [key, value] of Object.entries(comparisonData)) {
+        if (value.matches === false) {
+          matchingData = false;
+          break;
+        }
+      }
+
+      if (matchingData) {
+        browser.action.setBadgeBackgroundColor({ color: 'transparent', tabId });
+        browser.action.setBadgeText({ text: '🟢', tabId });
+      } else {
+        browser.action.setBadgeBackgroundColor({ color: 'transparent', tabId });
+        browser.action.setBadgeText({ text: '🟠', tabId });
+      }
+    } else {
+      browser.action.setBadgeBackgroundColor({ color: 'transparent', tabId });
+      browser.action.setBadgeText({ text: '⭕️', tabId });
+    }
+
+    console.log('Enabling action');
+    browser.action.enable(tabId);
+  }
+
+  handleSuspend = () => {
+    console.log('Background Script Suspending');
+    browser.action.disable();
   };
 }
 
 async function initEvents() {
+  console.log('Initializing Background Script');
   const BzJiraInst = new BzJira();
-  browser.tabs.onUpdated.addListener(BzJiraInst.handleTabUpdates);
+  browser.action.disable();
   browser.runtime.onMessage.addListener(BzJiraInst.handleMessage);
+  // browser.tabs.onActivated.addListener(BzJiraInst.handleActiveTab);
+  browser.runtime.onSuspend.addListener(BzJiraInst.handleSuspend);
 }
 
 initEvents();
