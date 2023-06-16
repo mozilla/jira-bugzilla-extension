@@ -2,39 +2,63 @@ import * as config from './shared/config.js';
 import * as util from './shared/util.js';
 
 export default class BzJira {
-  checkPriority(jira, bz) {
-    const priorityMap = {
-      highest: 'P1',
-      high: 'P2',
-      medium: 'P3',
-      low: 'P4',
-      lowest: 'P5',
-      '(none)': '--',
-    };
-    return priorityMap[jira.toLowerCase()] === bz;
+  checkStrings(jira, bz) {
+    return typeof jira === 'string' && typeof bz === 'string';
   }
 
-  checkStatus(jira, bz) {
-    const statusMap = {
-      'In Review': ['ASSIGNED'],
-      'In Progress': ['ASSIGNED'],
-      New: ['NEW', 'UNCONFIRMED'],
-      Open: ['NEW', 'UNCONFIRMED'],
-      Reopened: ['REOPENED'],
-      Closed: ['RESOLVED'],
-    };
-
-    return statusMap[jira].includes(bz);
+  checkPriorityMap(jira, bz) {
+    if (this.checkStrings(jira, bz)) {
+      const priorityMap = {
+        highest: 'P1',
+        high: 'P2',
+        medium: 'P3',
+        low: 'P4',
+        lowest: 'P5',
+        '(none)': '--',
+      };
+      return priorityMap[jira.toLowerCase()] === bz;
+    }
+    return false;
   }
 
-  checkEqual(jira, bz) {
+  checkStatusMap(jira, bz) {
+    if (this.checkStrings(jira, bz)) {
+      const statusMap = {
+        'In Review': ['ASSIGNED'],
+        'In Progress': ['ASSIGNED'],
+        New: ['NEW', 'UNCONFIRMED'],
+        Open: ['NEW', 'UNCONFIRMED'],
+        Backlog: ['NEW', 'UNCONFIRMED'],
+        Reopened: ['REOPENED'],
+        Closed: ['RESOLVED'],
+      };
+      const mapping = statusMap[jira];
+      if (mapping) {
+        return mapping.includes(bz);
+      }
+    }
+    return false;
+  }
+
+  /*
+   * Since we know there might be cases where emails don't match
+   * Let's consider adding a user-generated list as a mapping.
+   *
+   */
+  checkAssignee(jira, bz) {
+    // Assignee can be null
     if (
-      jira === null ||
-      (jira === undefined && (bz === '---' || bz === 'nobody@mozilla.org'))
+      [null, undefined].includes(jira) &&
+      ['---', 'nobody@mozilla.org'].includes(bz)
     ) {
       return true;
     }
-    if (jira?.trim && bz?.trim) {
+
+    return this.checkEqualTrimmedStrings(jira, bz);
+  }
+
+  checkEqualTrimmedStrings(jira, bz) {
+    if (this.checkStrings(jira, bz)) {
       return jira.trim() === bz.trim();
     }
     return false;
@@ -65,6 +89,7 @@ export default class BzJira {
     const bzBugApiURL = new URL(
       `${config.BZ_BUG_API_URL_BASE}${encodeURIComponent(bugId)}`,
     );
+
     bzBugApiURL.searchParams.set('include_fields', [
       'id,summary,assigned_to,priority,status,cf_fx_points',
     ]);
@@ -116,12 +141,15 @@ export default class BzJira {
         title: {
           jira: JIRAData.fields.summary,
           bz: bugData.summary,
-          matches: this.checkEqual(JIRAData.fields.summary, bugData.summary),
+          matches: this.checkEqualTrimmedStrings(
+            JIRAData.fields.summary,
+            bugData.summary,
+          ),
         },
         assignee: {
           jira: jiraAssignee,
           bz: bugData.assigned_to,
-          matches: this.checkEqual(
+          matches: this.checkAssignee(
             JIRAData?.fields?.assignee?.emailAddress,
             bugData.assigned_to,
           ),
@@ -129,23 +157,24 @@ export default class BzJira {
         status: {
           jira: jiraStatus,
           bz: bugData.status,
-          matches: this.checkStatus(jiraStatus, bugData.status),
+          matches: this.checkStatusMap(jiraStatus, bugData.status),
         },
         priority: {
           jira: JIRAData.fields.priority.name,
           bz: bugData.priority,
-          matches: this.checkPriority(
+          matches: this.checkPriorityMap(
             JIRAData.fields.priority.name,
             bugData.priority,
           ),
         },
         /*
+         *  For now this is commented out because points aren't synced.
         points: {
           jira: JIRAData.fields.customfield_10037
             ? JIRAData.fields.customfield_10037
             : '---',
           bz: bugData.cf_fx_points,
-          matches: this.checkEqual(
+          matches: this.checkEqualTrimmedStrings(
             JIRAData.fields.customfield_10037,
             bugData.cf_fx_points,
           ),

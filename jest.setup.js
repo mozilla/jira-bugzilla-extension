@@ -3,6 +3,7 @@ import { jest } from '@jest/globals';
  * Fake out the webextension APIS.
  *
  */
+
 global.browser = {
   action: {
     show: jest.fn(),
