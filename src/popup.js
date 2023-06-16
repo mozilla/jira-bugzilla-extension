@@ -4,7 +4,7 @@
  *
  */
 
-import { html, render } from '../vendor/lit-html.js';
+import { html, render } from '../vendor/lit-html/lit-html.js';
 
 const comparisonTable = (title, data) => {
   function getMatchContent(match) {

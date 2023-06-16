@@ -41,9 +41,8 @@
             "resources": [
                 "icons/*",
                 "shared/*",
-                "content/bugzilla.js",
-                "vendor/lit-html.js",
-                "vendor/lit-html.map"
+                "vendor/lit-html/*",
+                "content/bugzilla.js"
             ],
             "matches": [
                 "https://bugzilla.mozilla.org/*"
