@@ -9,7 +9,7 @@ import { html, render } from './vendor/lit-html/lit-html.js';
 const comparisonTable = (title, data) => {
   function getMatchContent(match) {
     const matchContent = '';
-    if (match === 'undefined') {
+    if (typeof match === 'undefined') {
       return 'N/A';
     }
     return match ? '✅ YES' : '⛔️ NO';
@@ -40,7 +40,9 @@ const comparisonTable = (title, data) => {
             ${Object.keys(data).map(
               (key) => html` <tr>
                 <th>${key}</th>
-                <td class="match">${getMatchContent(data[key].matches)}</td>
+                <td data-testid="${key}" class="match">
+                  ${getMatchContent(data[key].matches)}
+                </td>
                 <td>${data[key].jira}</td>
                 <td>${data[key].bz}</td>
               </tr>`,

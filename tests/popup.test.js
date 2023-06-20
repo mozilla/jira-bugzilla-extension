@@ -1,5 +1,10 @@
 import { jest } from '@jest/globals';
-import { getByText, findByText, waitFor } from '@testing-library/dom';
+import {
+  getByText,
+  getByTestId,
+  findByText,
+  waitFor,
+} from '@testing-library/dom';
 import '@testing-library/jest-dom';
 
 describe('Popup', () => {
@@ -26,6 +31,7 @@ describe('Popup', () => {
         },
         priority: { jira: '(none)', bz: 'P1', matches: false },
         status: { jira: 'Up Next', bz: 'NEW', matches: false },
+        whatever: { jira: 'test', bz: 'test', matches: undefined },
       },
     };
 
@@ -40,6 +46,11 @@ describe('Popup', () => {
       expect(
         getByText(document.body, /Comparing JIRA-12345 to Bug 123456/),
       ).toBeInTheDocument();
+      expect(getByTestId(document.body, 'priority')).toHaveTextContent(
+        '⛔️ NO',
+      );
+      expect(getByTestId(document.body, 'title')).toHaveTextContent('✅ YES');
+      expect(getByTestId(document.body, 'whatever')).toHaveTextContent('N/A');
     });
   });
 
@@ -64,6 +75,17 @@ describe('Popup', () => {
       expect(
         getByText(document.body, /This is an error message/),
       ).toBeInTheDocument();
+    });
+  });
+
+  it('should be noop if no response', async () => {
+    await import('../src/popup.js');
+
+    // Get the callback function and call it with a fake response.
+    browser.runtime.sendMessage.mock.calls[0][1]();
+
+    await waitFor(() => {
+      expect(document.body.innerHTML).toBe('<div id="data"></div>');
     });
   });
 });
