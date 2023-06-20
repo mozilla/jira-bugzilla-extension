@@ -148,13 +148,14 @@ describe('Bugzilla Content Script', () => {
       fetch.mockReturnValue({ json: mockJson });
     });
 
-    it('should return early if the column has already been added', async () => {
-      document.body.innerHTML = `<table>
+    it('should be a noop if the column has already been added', async () => {
+      const tableAlreadyUpdated = `<table><thead><tr>
         <th id="bz-jira-table-header" style="min-width: 7.5em;">Jira Link</th>
-      </table>`;
+      </tr></thead></table>`;
+      document.body.innerHTML = tableAlreadyUpdated;
 
       const result = await BZContent.initBuglist();
-      expect(result).toBe(undefined);
+      expect(document.body.innerHTML).toEqual(tableAlreadyUpdated);
     });
 
     it('should inject the tds with the link', async () => {

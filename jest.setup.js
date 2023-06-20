@@ -1,7 +1,5 @@
 import { jest } from '@jest/globals';
 
-import { getByText, waitFor } from '@testing-library/dom';
-
 /*
  * Fake out the webextension APIS.
  *
@@ -36,6 +34,7 @@ global.browser = {
     onSuspend: {
       addListener: jest.fn(),
     },
+    getURL: jest.fn(),
     getManifest: jest.fn(),
     sendMessage: jest.fn(),
   },
