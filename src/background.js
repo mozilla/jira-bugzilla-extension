@@ -167,18 +167,6 @@ export default class BzJira {
             bugData.priority,
           ),
         },
-        /*
-         *  For now this is commented out because points aren't synced.
-        points: {
-          jira: JIRAData.fields.customfield_10037
-            ? JIRAData.fields.customfield_10037
-            : '---',
-          bz: bugData.cf_fx_points,
-          matches: this.checkEqualTrimmedStrings(
-            JIRAData.fields.customfield_10037,
-            bugData.cf_fx_points,
-          ),
-        }, */
       };
     }
   };
@@ -336,13 +324,32 @@ export default class BzJira {
       if (matchingData) {
         browser.action.setBadgeBackgroundColor({ color: 'transparent', tabId });
         browser.action.setBadgeText({ text: '🟢', tabId });
+        browser.action.setTitle({
+          title: 'Comparison between Jira and Bugzilla matches',
+          tabId,
+        });
       } else {
         browser.action.setBadgeBackgroundColor({ color: 'transparent', tabId });
         browser.action.setBadgeText({ text: '🟠', tabId });
+        browser.action.setTitle({
+          title: 'Comparison between Jira and Bugzilla has some differences',
+          tabId,
+        });
       }
     } else {
       browser.action.setBadgeBackgroundColor({ color: 'transparent', tabId });
       browser.action.setBadgeText({ text: '⭕️', tabId });
+      if (bugId) {
+        browser.action.setTitle({
+          title: `No Jira ticket associated with this bug`,
+          tabId,
+        });
+      } else {
+        browser.action.setTitle({
+          title: `No Bugzilla ticket associated with this Jira ticket`,
+          tabId,
+        });
+      }
     }
 
     console.log('Enabling action');

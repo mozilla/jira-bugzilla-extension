@@ -25,28 +25,28 @@ const comparisonTable = (title, data) => {
       ${data.errorTitle ? data.errorTitle : title}
     </h2>
 
-    ${data.error ? html`<p>${data.error}</p>` : ''}
-
-    <table>
-      <thead>
-        <tr>
-          <th>Field</th>
-          <th>Matches?</th>
-          <th>Jira</th>
-          <th>Bugzilla</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${Object.keys(data).map(
-          (key) => html` <tr>
-            <th>${key}</th>
-            <td class="match">${getMatchContent(data[key].matches)}</td>
-            <td>${data[key].jira}</td>
-            <td>${data[key].bz}</td>
-          </tr>`,
-        )}
-      </tbody>
-    </table>`;
+    ${data.error
+      ? html`<p>${data.error}</p>`
+      : html`<table>
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Matches?</th>
+              <th>Jira</th>
+              <th>Bugzilla</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.keys(data).map(
+              (key) => html` <tr>
+                <th>${key}</th>
+                <td class="match">${getMatchContent(data[key].matches)}</td>
+                <td>${data[key].jira}</td>
+                <td>${data[key].bz}</td>
+              </tr>`,
+            )}
+          </tbody>
+        </table>`}`;
 };
 
 browser.runtime.sendMessage(

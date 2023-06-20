@@ -123,14 +123,14 @@ export default class BZContent {
     console.warn(`${bugsNotFoundCount} bugs not found in the bug list table`);
   }
 
-  async initBug() {
+  async initBug(_window = window) {
     const bugLink = document.getElementById('field-value-bug_id');
     if (bugLink.getAttribute('data-jira-bz-link-injected')) {
       console.log('Jira links already added. noop');
       return;
     }
 
-    const bugId = util.getBugId(window.location);
+    const bugId = util.getBugId(_window.location);
     const bugApiURL = new URL(`${config.BZ_BUG_API_URL_BASE}${bugId}`);
     bugApiURL.searchParams.set('include_fields', config.BZ_INCLUDED_FIELDS);
 

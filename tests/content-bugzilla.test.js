@@ -4,6 +4,7 @@
  */
 
 import { jest } from '@jest/globals';
+import { findByText } from '@testing-library/dom';
 
 import * as config from '../src/shared/config.js';
 import BZContentScript from '../src/content/bugzilla';
@@ -11,6 +12,10 @@ import BZContentScript from '../src/content/bugzilla';
 const BZContent = new BZContentScript();
 
 describe('Bugzilla Content Script', () => {
+  beforeAll(() => {
+    document.body.innerHTML = '';
+  });
+
   describe('getBuglistRestURL()', () => {
     it('should get a REST url from the DOM', () => {
       document.body.innerHTML = `<div class="bz_query_links">
@@ -120,9 +125,156 @@ describe('Bugzilla Content Script', () => {
     });
   });
 
-  describe('initBuglist()', () => {});
+  describe('initBuglist()', () => {
+    beforeEach(() => {
+      fetch = jest.fn();
+      const mockJson = jest.fn();
+      mockJson.mockReturnValue({
+        bugs: [
+          {
+            id: 1,
+            see_also: ['https://mozilla-hub.atlassian.net/browse/WHATEVER-1'],
+          },
+          {
+            id: 2,
+            see_also: ['https://mozilla-hub.atlassian.net/browse/WHATEVER-2'],
+          },
+          {
+            id: 3,
+            see_also: ['https://mozilla-hub.atlassian.net/browse/WHATEVER-3'],
+          },
+        ],
+      });
+      fetch.mockReturnValue({ json: mockJson });
+    });
 
-  describe('initBug()', () => {});
+    it('should return early if the column has already been added', async () => {
+      document.body.innerHTML = `<table>
+        <th id="bz-jira-table-header" style="min-width: 7.5em;">Jira Link</th>
+      </table>`;
+
+      const result = await BZContent.initBuglist();
+      expect(result).toBe(undefined);
+    });
+
+    it('should inject the tds with the link', async () => {
+      document.body.innerHTML = `<table class="bz_buglist">
+        <thead>
+          <tr>
+            <th>Example table heading</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="b1"><td>Example Cell 1</td></tr>
+          <tr id="b2"><td>Example Cell 2</td></tr>
+          <tr id="b3"><td>Example Cell 3</td></tr>
+        </tbody>
+      </table>`;
+
+      await BZContent.initBuglist();
+
+      const jiraLink1 = await findByText(document.body, 'WHATEVER-1');
+      expect(jiraLink1.href).toBe(
+        'https://mozilla-hub.atlassian.net/browse/WHATEVER-1',
+      );
+      expect(jiraLink1.parentNode.nodeName).toBe('TD');
+
+      const jiraLink2 = await findByText(document.body, 'WHATEVER-2');
+      expect(jiraLink2.href).toBe(
+        'https://mozilla-hub.atlassian.net/browse/WHATEVER-2',
+      );
+      expect(jiraLink2.parentNode.nodeName).toBe('TD');
+
+      const jiraLink3 = await findByText(document.body, 'WHATEVER-3');
+      expect(jiraLink3.href).toBe(
+        'https://mozilla-hub.atlassian.net/browse/WHATEVER-3',
+      );
+      expect(jiraLink3.parentNode.nodeName).toBe('TD');
+    });
+
+    it('should warn for non-matching data', async () => {
+      document.body.innerHTML = `<table class="bz_buglist">
+        <thead>
+          <tr>
+            <th>Example table heading</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="b1"><td>Example Cell 1</td></tr>
+          <tr id="b4"><td>Example Cell 2</td></tr>
+          <tr id="b5"><td>Example Cell 3</td></tr>
+        </tbody>
+      </table>`;
+
+      const oldConsoleWarn = window.console.warn;
+      window.console.warn = jest.fn();
+
+      try {
+        await BZContent.initBuglist();
+        expect(window.console.warn).toHaveBeenCalledWith(
+          '2 bugs not found in the bug list table',
+        );
+      } finally {
+        window.console.warn = oldConsoleWarn;
+      }
+    });
+  });
+
+  describe('initBug()', () => {
+    const fakeWindow = {
+      location: 'https://bugzilla.mozilla.org/show_bug.cgi?id=123456789',
+    };
+
+    beforeEach(() => {
+      fetch = jest.fn();
+      const mockJson = jest.fn();
+      mockJson.mockReturnValue({
+        bugs: [
+          {
+            id: 123456789,
+            see_also: [
+              'https://bugzilla.mozilla.org/show_bug.cgi?id=987654321',
+              'https://mozilla-hub.atlassian.net/browse/WHATEVER-123',
+            ],
+          },
+        ],
+      });
+      fetch.mockReturnValue({ json: mockJson });
+    });
+
+    it('should return early if link has already been injected', async () => {
+      document.body.innerHTML = `<span id="field-value-bug_id" data-jira-bz-link-injected="true">
+        <a href="/show_bug.cgi?id=123456789">Bug 123456789</a>
+      </span>`;
+
+      const result = await BZContent.initBug();
+      expect(result).toBe(undefined);
+    });
+
+    it('should add the buglink(s)', async () => {
+      document.body.innerHTML = `<span id="field-value-bug_id">
+        <a href="/show_bug.cgi?id=123456789">Bug 123456789</a>
+      </span>`;
+
+      const result = await BZContent.initBug(fakeWindow);
+      expect(
+        document.querySelectorAll('#jira-bz-buglink-123456789').length,
+      ).toEqual(1);
+    });
+
+    it('should set the data attribute to indicate that the link has been added', async () => {
+      document.body.innerHTML = `<span id="field-value-bug_id">
+        <a href="/show_bug.cgi?id=123456789">Bug 123456789</a>
+      </span>`;
+
+      const result = await BZContent.initBug(fakeWindow);
+      expect(
+        !!document
+          .getElementById('field-value-bug_id')
+          .getAttribute('data-jira-bz-link-injected'),
+      ).toBe(true);
+    });
+  });
 
   describe('init()', () => {
     it('should call initBug if the url is a bug', () => {

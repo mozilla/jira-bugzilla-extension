@@ -1,4 +1,7 @@
 import { jest } from '@jest/globals';
+
+import { getByText, waitFor } from '@testing-library/dom';
+
 /*
  * Fake out the webextension APIS.
  *
@@ -34,6 +37,7 @@ global.browser = {
       addListener: jest.fn(),
     },
     getManifest: jest.fn(),
+    sendMessage: jest.fn(),
   },
   tabs: {
     onUpdated: {
