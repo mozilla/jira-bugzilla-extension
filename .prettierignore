@@ -4,6 +4,7 @@
 /coverage/
 /dist-zip/
 /dist/
+src/vendor/lit-html/LICENSE
 # safe-list files we want to process
 !*.html
 !*.js
