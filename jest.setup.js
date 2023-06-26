@@ -9,7 +9,12 @@ import { jest } from '@jest/globals';
 global.browser = {
   action: {
     show: jest.fn(),
+    enable: jest.fn(),
     disable: jest.fn(),
+    setBadgeBackgroundColor: jest.fn(),
+    setIconBadge: jest.fn(),
+    setBadgeText: jest.fn(),
+    setTitle: jest.fn(),
   },
   pageAction: {
     show: jest.fn(),

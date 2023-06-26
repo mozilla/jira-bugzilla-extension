@@ -419,5 +419,118 @@ describe('Background Script', () => {
     });
   });
 
-  describe('handleMessage', () => {});
+  describe('handleMessage', () => {
+    it(`should throw if instruction isn't a string`, async () => {
+      expect(async () => {
+        await BzJira.handleMessage({ instruction: null });
+      }).rejects.toThrow('Invalid instruction');
+    });
+
+    it('should dispatch message for popup', async () => {
+      let oldHandleGetComparisonDataForPopup;
+      try {
+        oldHandleGetComparisonDataForPopup =
+          BzJira.handleGetComparisonDataForPopup;
+        BzJira.handleGetComparisonDataForPopup = jest.fn();
+        await BzJira.handleMessage({
+          instruction: 'getComparisonDataForPopup',
+        });
+        expect(BzJira.handleGetComparisonDataForPopup).toHaveBeenCalled();
+      } finally {
+        BzJira.handleGetComparisonDataForPopup =
+          oldHandleGetComparisonDataForPopup;
+      }
+    });
+
+    it('should dispatch message for identifiers', async () => {
+      let oldHandleIdentifiersMessage;
+      try {
+        oldHandleIdentifiersMessage = BzJira.handleIdentifiersMessage;
+        BzJira.handleIdentifiersMessage = jest.fn();
+        await BzJira.handleMessage({ instruction: 'identifiersFromBugzilla' });
+        expect(BzJira.handleIdentifiersMessage).toHaveBeenCalled();
+      } finally {
+        BzJira.handleIdentifiersMessage = oldHandleIdentifiersMessage;
+      }
+    });
+  });
+
+  describe('setIconBadge', () => {
+    it('should set the right icon if matching', () => {
+      const fakeData = {
+        bugId: '123456',
+        jiraIssueIds: ['JIRA-12345'],
+        comparisonData: {
+          title: { jira: 'Whatever', bz: 'Whatever', matches: true },
+          assignee: {
+            jira: 'example@example.com',
+            bz: 'example@example.com',
+            matches: true,
+          },
+          priority: { jira: '(none)', bz: 'P1', matches: true },
+          status: { jira: 'Up Next', bz: 'NEW', matches: true },
+          whatever: { jira: 'test', bz: 'test', matches: true },
+        },
+      };
+
+      BzJira.setIconBadge(fakeData, 'fakeTabId');
+      expect(browser.action.setBadgeText).toHaveBeenCalledWith({
+        text: '🟢',
+        tabId: 'fakeTabId',
+      });
+      expect(browser.action.enable).toHaveBeenCalled();
+    });
+
+    it('should set the right badge if not matching', () => {
+      const fakeData = {
+        bugId: '123456',
+        jiraIssueIds: ['JIRA-12345'],
+        comparisonData: {
+          title: { jira: 'Whatever', bz: 'Whatever', matches: false },
+          assignee: {
+            jira: 'example@example.com',
+            bz: 'example@example.com',
+            matches: true,
+          },
+          priority: { jira: '(none)', bz: 'P1', matches: true },
+          status: { jira: 'Up Next', bz: 'NEW', matches: true },
+          whatever: { jira: 'test', bz: 'test', matches: true },
+        },
+      };
+
+      BzJira.setIconBadge(fakeData, 'fakeTabId');
+      expect(browser.action.setBadgeText).toHaveBeenCalledWith({
+        text: '🟠',
+        tabId: 'fakeTabId',
+      });
+      expect(browser.action.enable).toHaveBeenCalled();
+    });
+
+    it(`should set the right badge if there's an issues`, () => {
+      const fakeData = {};
+      BzJira.setIconBadge(fakeData, 'fakeTabId');
+      expect(browser.action.setBadgeText).toHaveBeenCalledWith({
+        text: '⭕️',
+        tabId: 'fakeTabId',
+      });
+      expect(browser.action.enable).toHaveBeenCalled();
+    });
+
+    it(`should set the test if there's an issues`, () => {
+      const fakeData = { bugId: '123456', jiraIssueIds: [] };
+      BzJira.setIconBadge(fakeData, 'fakeTabId');
+      expect(browser.action.setTitle).toHaveBeenCalledWith({
+        tabId: 'fakeTabId',
+        title: 'No Jira ticket associated with this bug',
+      });
+      expect(browser.action.enable).toHaveBeenCalled();
+    });
+  });
+
+  describe('handleSuspend()', () => {
+    it('should call browser.action.disable', () => {
+      BzJira.handleSuspend();
+      expect(browser.action.disable).toHaveBeenCalled();
+    });
+  });
 });
