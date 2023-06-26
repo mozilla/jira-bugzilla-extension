@@ -1,3 +1,4 @@
+import { createRequire } from 'module';
 import { jest } from '@jest/globals';
 
 /*
@@ -35,8 +36,17 @@ global.browser = {
       addListener: jest.fn(),
     },
     getURL: jest.fn(),
-    getManifest: jest.fn(),
+    getManifest: () => {
+      const require = createRequire(import.meta.url);
+      return require('./src/manifest.json');
+    },
     sendMessage: jest.fn(),
+  },
+  storage: {
+    local: {
+      set: jest.fn(),
+      get: jest.fn(),
+    },
   },
   tabs: {
     onUpdated: {
@@ -45,5 +55,6 @@ global.browser = {
     onActivated: {
       addListener: jest.fn(),
     },
+    query: jest.fn(),
   },
 };

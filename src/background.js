@@ -79,10 +79,9 @@ export default class BzJira {
     return !isNaN(parsedBugNum);
   }
 
-  getComparisonData = async (bugId, jiraIssueId) => {
+  getComparisonData = async (bugId, jiraIssueId, _window = window) => {
     if (!this.isValidBugId(bugId) || !this.isValidJiraId(jiraIssueId)) {
-      console.log('Invalid bug data');
-      return {};
+      throw new Error('Invalid bug data');
     }
 
     // Customize fields for BZ
@@ -103,9 +102,9 @@ export default class BzJira {
     ]);
 
     if (jiraIssueId) {
-      const [jiraAPIData, bzData] = await Promise.all([
-        fetch(jiraApiURL),
-        fetch(bzBugApiURL),
+      const [bzData, jiraAPIData] = await Promise.all([
+        _window.fetch(bzBugApiURL),
+        _window.fetch(jiraApiURL),
       ]);
 
       let JIRAData;
@@ -132,8 +131,10 @@ export default class BzJira {
         );
       }
 
-      const jiraStatus = JIRAData.fields.status.name.replace(' (migrated)', '');
-
+      const jiraStatus = JIRAData?.fields?.status?.name.replace(
+        ' (migrated)',
+        '',
+      );
       const jiraAssignee =
         JIRAData?.fields?.assignee?.emailAddress || 'Not assigned';
 
@@ -188,12 +189,8 @@ export default class BzJira {
         newBugData.bugId = bugData.bugId;
       }
       newBugData.jiraIssueIds = bugData.jiraIssueIds.filter(this.isValidJiraId);
-    } else {
-      console.log('bugData was null');
     }
-
     console.log('newBugData', newBugData);
-
     return newBugData;
   }
 
@@ -225,19 +222,16 @@ export default class BzJira {
     });
 
     if (!currentTab) {
-      console.log('No current tab, bailing!');
-      return;
+      throw new Error('No current tab, bailing!');
     }
     const bugId = util.getBugId(currentTab[0].url);
 
     if (!bugId) {
-      console.log('no BugId!');
-      return;
+      throw new Error('No BugId!');
     }
 
     // Check storage for jira id data.
     const cachedBugData = await browser.storage.local.get(bugId);
-    console.log('cachedBugData', cachedBugData);
     const jiraIssueIds = cachedBugData[bugId]?.jiraIssueIds || [];
 
     let result;
@@ -262,8 +256,6 @@ export default class BzJira {
       });
     }
 
-    console.log('result', result);
-
     return {
       bugId,
       jiraIssueIds,
@@ -272,10 +264,9 @@ export default class BzJira {
   };
 
   handleGetComparisonDataForPopup = async (request, sender) => {
-    console.log('handleGetComparisonDataForPopup');
     // Throws if sender is invalid.
     util.isValidSender(sender);
-    return await this.requestComparisonData(sender);
+    return this.requestComparisonData(sender);
   };
 
   /*

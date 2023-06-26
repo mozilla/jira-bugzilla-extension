@@ -115,6 +115,7 @@ describe('Bugzilla Content Script', () => {
       };
       fakeWindow.fetch.mockResolvedValue({
         status: 200,
+        ok: true,
         json: async () => ({
           data: 'WHATEVER',
         }),
@@ -122,6 +123,24 @@ describe('Bugzilla Content Script', () => {
       const url = 'https://example.com';
       const result = await BZContent.fetchBZData(url, fakeWindow);
       expect(result).toEqual({ data: 'WHATEVER' });
+    });
+
+    it('should throw if not a 200 status', async () => {
+      const fakeWindow = {
+        fetch: jest.fn(),
+      };
+      fakeWindow.fetch.mockResolvedValue({
+        status: 500,
+        ok: false,
+        statusText: 'Server Error',
+        json: async () => ({
+          data: 'WHATEVER',
+        }),
+      });
+      const url = 'https://example.com';
+      expect(async () => {
+        await BZContent.fetchBZData(url, fakeWindow);
+      }).rejects.toThrow('Server Error');
     });
   });
 
@@ -145,7 +164,7 @@ describe('Bugzilla Content Script', () => {
           },
         ],
       });
-      fetch.mockReturnValue({ json: mockJson });
+      fetch.mockReturnValue({ status: 200, ok: true, json: mockJson });
     });
 
     it('should be a noop if the column has already been added', async () => {

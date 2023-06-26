@@ -26,6 +26,12 @@ export default class BZContent {
     }
   }
 
+  /*
+   * This builds the bug list API URL making sure it has the right fields
+   * and takes into account the same sort order as the web-page to avoid
+   * fetching mis-matched data.
+   *
+   */
   getBuglistApiURL(_window = window) {
     const apiURL = new URL(this.getBuglistRestURL());
     const apiParams = apiURL.searchParams;
@@ -72,9 +78,17 @@ export default class BZContent {
     return jiraLinks;
   }
 
+  /*
+   * The fetch for bugzilla data.
+   */
   async fetchBZData(url, _window = window) {
-    const result = await _window.fetch(url);
-    return await result.json();
+    // Network error will throw.
+    const response = await _window.fetch(url);
+    if (response.ok) {
+      return response.json();
+    } else {
+      throw new Error(response.statusText);
+    }
   }
 
   async initBuglist() {
@@ -120,7 +134,9 @@ export default class BZContent {
         bugsNotFoundCount++;
       }
     }
-    console.warn(`${bugsNotFoundCount} bugs not found in the bug list table`);
+    if (bugsNotFoundCount > 0) {
+      console.warn(`${bugsNotFoundCount} bugs not found in the bug list table`);
+    }
   }
 
   async initBug(_window = window) {

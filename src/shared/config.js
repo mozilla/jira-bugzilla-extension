@@ -6,3 +6,5 @@ export const JIRA_API_ISSUE_URL_BASE =
   'https://mozilla-hub.atlassian.net/rest/api/latest/issue/';
 export const JIRA_URL_RX =
   /^https:\/\/mozilla-hub.atlassian.net\/browse\/([A-Z-0-9]+)$/;
+export const EXT_ID =
+  browser.runtime.getManifest().browser_specific_settings.gecko.id;

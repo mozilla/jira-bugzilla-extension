@@ -3,6 +3,7 @@
  *
  */
 
+import { jest } from '@jest/globals';
 import * as config from '../src/shared/config.js';
 import BzJiraBackground from '../src/background';
 
@@ -114,6 +115,114 @@ describe('Background Script', () => {
     });
   });
 
+  describe('getComparisonData()', () => {
+    it('should throw if passed invalid bug data', async () => {
+      expect(async () => {
+        await BzJira.getComparisonData();
+      }).rejects.toThrow('Invalid bug data');
+    });
+
+    it('should call fetch with the API urls for the bz and jira APIs', async () => {
+      const fakeWindow = {
+        fetch: jest.fn(),
+      };
+
+      const fakeResponse = { status: 200, ok: true, json: jest.fn() };
+      fakeResponse.json.mockResolvedValue({
+        bugs: [
+          {
+            summary: 'test-summary',
+            assigned_to: 'test@example.com',
+            status: 'NEW',
+            priority: 'P1',
+          },
+        ],
+      });
+
+      const fakeResponse2 = { status: 200, ok: true, json: jest.fn() };
+      fakeResponse2.json.mockResolvedValue({
+        fields: {
+          summary: 'test-summary',
+          assignee: {
+            email_address: 'test@example.com',
+          },
+          status: {
+            name: 'Backlog',
+          },
+          priority: 'highest',
+        },
+      });
+
+      fakeWindow.fetch.mockResolvedValueOnce(fakeResponse);
+      fakeWindow.fetch.mockResolvedValueOnce(fakeResponse2);
+
+      await BzJira.getComparisonData('123456', 'JIRA-1234', fakeWindow);
+      expect(fakeWindow.fetch.mock.calls[0].toString()).toMatch(
+        /https:\/\/bugzilla.mozilla.org\/rest\/bug\/123456\?/,
+      );
+      expect(fakeWindow.fetch.mock.calls[1].toString()).toMatch(
+        /https:\/\/mozilla-hub.atlassian.net\/rest\/api\/latest\/issue\/JIRA-1234/,
+      );
+    });
+
+    it('should throw if jira API request is 404', async () => {
+      const fakeWindow = {
+        fetch: jest.fn(),
+      };
+
+      const fakeResponse = { status: 200, ok: true, json: jest.fn() };
+      fakeResponse.json.mockResolvedValue({
+        bugs: [
+          {
+            summary: 'test-summary',
+            assigned_to: 'test@example.com',
+            status: 'NEW',
+            priority: 'P1',
+          },
+        ],
+      });
+
+      // Set up the right response for a 404 from jira.
+      const fakeResponse2 = { status: 404, ok: false, json: jest.fn() };
+
+      fakeWindow.fetch.mockResolvedValueOnce(fakeResponse);
+      fakeWindow.fetch.mockResolvedValueOnce(fakeResponse2);
+
+      expect(async () => {
+        await BzJira.getComparisonData('123456', 'JIRA-1234', fakeWindow);
+      }).rejects.toThrow(/JIRA API request failed/);
+    });
+
+    it('should throw if bz API request is not ok', async () => {
+      const fakeWindow = {
+        fetch: jest.fn(),
+      };
+
+      const fakeResponse = { status: 500, ok: false, json: jest.fn() };
+
+      const fakeResponse2 = { status: 200, ok: true, json: jest.fn() };
+      fakeResponse2.json.mockResolvedValue({
+        fields: {
+          summary: 'test-summary',
+          assignee: {
+            email_address: 'test@example.com',
+          },
+          status: {
+            name: 'Backlog',
+          },
+          priority: 'highest',
+        },
+      });
+
+      fakeWindow.fetch.mockResolvedValueOnce(fakeResponse);
+      fakeWindow.fetch.mockResolvedValueOnce(fakeResponse2);
+
+      expect(async () => {
+        await BzJira.getComparisonData('123456', 'JIRA-1234', fakeWindow);
+      }).rejects.toThrow('Bugzilla API request failed with error status 500');
+    });
+  });
+
   describe('isValidJiraId()', () => {
     it('should return false for an invalid jira id', () => {
       expect(BzJira.isValidJiraId('../../etc/passwd')).toBe(false);
@@ -123,8 +232,192 @@ describe('Background Script', () => {
       expect(BzJira.isValidJiraId('FIDEFE-12345')).toBe(true);
     });
 
+    it('should return true for valid jira id', () => {
+      expect(BzJira.isValidJiraId('WHATEVER-2')).toBe(true);
+    });
+
     it('should return false for non string', () => {
       expect(BzJira.isValidJiraId({})).toBe(false);
     });
   });
+
+  describe('validateBugData()', () => {
+    it('should return defaults if bad data is supplied', () => {
+      const filteredBugData = BzJira.validateBugData({
+        bugId: 123,
+        jiraIssueIds: [1, 2],
+      });
+      expect(filteredBugData.bugId).toBe(null);
+      expect(filteredBugData.jiraIssueIds).toEqual([]);
+    });
+
+    it('should return defaults if bad data supplied is null', () => {
+      const filteredBugData = BzJira.validateBugData({
+        bugId: 123,
+        jiraIssueIds: [1, 2],
+      });
+      expect(filteredBugData.bugId).toBe(null);
+      expect(filteredBugData.jiraIssueIds).toEqual([]);
+    });
+
+    it('should return valid data if valid data supplied', () => {
+      const filteredBugData = BzJira.validateBugData({
+        bugId: '1234',
+        jiraIssueIds: ['WHATEVER-1', 'WHATEVER-2'],
+      });
+      expect(filteredBugData.bugId).toBe('1234');
+      expect(filteredBugData.jiraIssueIds).toEqual([
+        'WHATEVER-1',
+        'WHATEVER-2',
+      ]);
+    });
+  });
+
+  describe('handleIdentifiersMessage()', () => {
+    it('should throw if the sender is invalid', async () => {
+      await expect(BzJira.handleIdentifiersMessage()).rejects.toThrow(
+        /^Invalid sender$/,
+      );
+    });
+
+    it('should store data on the bugzilla id key', async () => {
+      const oldRequestComparisonData = BzJira.requestComparisonData;
+      const oldSetIconBadge = BzJira.setIconBadge;
+      BzJira.requestComparisonData = jest.fn();
+      BzJira.requestComparisonData.mockResolvedValue(null);
+      BzJira.setIconBadge = jest.fn();
+
+      await BzJira.handleIdentifiersMessage(
+        {
+          data: {
+            bugId: '12345',
+            jiraIssueIds: ['WHATEVER-1'],
+          },
+        },
+        { tab: { id: 'whatever' }, id: config.EXT_ID },
+      );
+
+      try {
+        expect(browser.storage.local.set).toHaveBeenCalledWith({
+          12345: { jiraIssueIds: ['WHATEVER-1'] },
+        });
+        expect(BzJira.setIconBadge).toHaveBeenCalledWith(null, 'whatever');
+      } finally {
+        BzJira.requestComparisonData = oldRequestComparisonData;
+        BzJira.setIconBadge = oldSetIconBadge;
+      }
+    });
+  });
+
+  describe('requestComparisonData()', () => {
+    let oldGetComparisonData = BzJira.getComparisonData;
+    beforeEach(() => {
+      BzJira.getComparisonData = jest.fn();
+    });
+
+    afterEach(() => {
+      BzJira.getComparisonData = oldGetComparisonData;
+    });
+
+    it('should throw if no current tab', async () => {
+      browser.tabs.query.mockResolvedValue(false);
+      expect(async () => {
+        await BzJira.requestComparisonData();
+      }).rejects.toThrow('No current tab, bailing!');
+    });
+
+    it('should throw if no bugId', async () => {
+      browser.tabs.query.mockResolvedValue([{ url: 'https://example.com' }]);
+      expect(async () => {
+        await BzJira.requestComparisonData();
+      }).rejects.toThrow('No BugId!');
+    });
+
+    it(`should return error message data if there's no jiraIssueIds`, async () => {
+      browser.tabs.query.mockResolvedValue([
+        { url: 'https://buzilla.mozilla.org/show_bug.cgi?id=123456' },
+      ]);
+      browser.storage.local.get.mockResolvedValue({
+        123456: {
+          jiraIssueIds: [],
+          comparisonData: {},
+        },
+      });
+
+      const result = await BzJira.requestComparisonData();
+      expect(result.comparisonData.errorTitle).toEqual('No Linked JIRA Issue');
+    });
+
+    it(`should return cached data`, async () => {
+      browser.tabs.query.mockResolvedValue([
+        { url: 'https://buzilla.mozilla.org/show_bug.cgi?id=123456' },
+      ]);
+      browser.storage.local.get.mockResolvedValue({
+        123456: {
+          jiraIssueIds: ['JIRA-1234'],
+          comparisonData: { test: 'test' },
+        },
+      });
+
+      const result = await BzJira.requestComparisonData();
+      expect(result.comparisonData.test).toEqual('test');
+    });
+
+    it(`should set error messages if requestComparisonData throws`, async () => {
+      BzJira.getComparisonData = jest.fn();
+      BzJira.getComparisonData.mockRejectedValue(Error('An unexpected error'));
+      browser.tabs.query.mockResolvedValue([
+        { url: 'https://buzilla.mozilla.org/show_bug.cgi?id=123456' },
+      ]);
+      browser.storage.local.get.mockResolvedValue({
+        123456: {
+          jiraIssueIds: ['WHATEVER-1', 'WHATEVER-2'],
+        },
+      });
+      const result = await BzJira.requestComparisonData();
+      expect(result.comparisonData.error).toEqual('An unexpected error');
+    });
+
+    it(`should return data from requestComparisonData()`, async () => {
+      BzJira.getComparisonData.mockResolvedValue({ test: 'test' });
+      browser.tabs.query.mockResolvedValue([
+        { url: 'https://buzilla.mozilla.org/show_bug.cgi?id=123456' },
+      ]);
+      browser.storage.local.get.mockResolvedValue({
+        123456: {
+          jiraIssueIds: ['WHATEVER-1', 'WHATEVER-2'],
+        },
+      });
+      const result = await BzJira.requestComparisonData();
+      expect(result.comparisonData.test).toEqual('test');
+    });
+  });
+
+  describe('getComparisonDataForPopup', () => {
+    it('throws if invalid', async () => {
+      const fakeSender = {
+        id: 'whatever',
+      };
+      expect(async () => {
+        await BzJira.handleGetComparisonDataForPopup({}, fakeSender);
+      }).rejects.toThrow('Invalid sender');
+    });
+
+    it('calls requestComparisonData', async () => {
+      const fakeSender = {
+        id: config.EXT_ID,
+      };
+      let oldRequestComparisonData;
+      try {
+        oldRequestComparisonData = BzJira.requestComparisonData;
+        BzJira.requestComparisonData = jest.fn();
+        await BzJira.handleGetComparisonDataForPopup({}, fakeSender);
+        expect(BzJira.requestComparisonData).toHaveBeenCalled();
+      } finally {
+        BzJira.requestComparisonData = oldRequestComparisonData;
+      }
+    });
+  });
+
+  describe('handleMessage', () => {});
 });
