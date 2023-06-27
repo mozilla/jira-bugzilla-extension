@@ -506,8 +506,16 @@ describe('Background Script', () => {
       expect(browser.action.enable).toHaveBeenCalled();
     });
 
-    it(`should set the right badge if there's an issues`, () => {
-      const fakeData = {};
+    it(`should set the right badge if there's an issue`, () => {
+      const fakeData = {
+        bugId: '1324394',
+        jiraIssueIds: ['FXCM-250'],
+        comparisonData: {
+          errorTitle: 'API Error',
+          error:
+            "JIRA API request failed with 404. Make sure you're logged into JIRA! 😉",
+        },
+      };
       BzJira.setIconBadge(fakeData, 'fakeTabId');
       expect(browser.action.setBadgeText).toHaveBeenCalledWith({
         text: '⭕️',
@@ -516,7 +524,7 @@ describe('Background Script', () => {
       expect(browser.action.enable).toHaveBeenCalled();
     });
 
-    it(`should set the test if there's an issues`, () => {
+    it(`should set the right text if there's an issues`, () => {
       const fakeData = { bugId: '123456', jiraIssueIds: [] };
       BzJira.setIconBadge(fakeData, 'fakeTabId');
       expect(browser.action.setTitle).toHaveBeenCalledWith({

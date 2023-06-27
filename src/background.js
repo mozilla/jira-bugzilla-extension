@@ -301,8 +301,11 @@ export default class BzJira {
 
   setIconBadge(data, tabId) {
     const { bugId, jiraIssueIds, comparisonData } = data;
-
-    if (bugId && jiraIssueIds.length > 0) {
+    if (
+      typeof comparisonData?.error === 'undefined' &&
+      bugId &&
+      jiraIssueIds.length > 0
+    ) {
       let matchingData = true;
 
       for (const [key, value] of Object.entries(comparisonData)) {
