@@ -10,8 +10,9 @@ const projectRoot = path.join(__dirname, '../');
 
 const fileMapping = {
   'node_modules/lit-html/LICENSE': 'src/vendor/lit-html/LICENSE',
-  'node_modules/lit-html/lit-html.js': 'src/vendor/lit-html/lit-html.js',
-  'node_modules/lit-html/lit-html.js.map':
+  'node_modules/lit-html/development/lit-html.js':
+    'src/vendor/lit-html/lit-html.js',
+  'node_modules/lit-html/development/lit-html.js.map':
     'src/vendor/lit-html/lit-html.js.map',
 };
 
