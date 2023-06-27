@@ -21,7 +21,7 @@
     "prettier": "prettier --write '**'",
     "prettier-ci": "prettier -c '**'",
     "test-ci": "yarn run test && yarn run prettier-ci && yarn run lint",
-    "test": "yarn node --experimental-vm-modules $(yarn bin jest)",
+    "test": "NODE_NO_WARNINGS=1 yarn node --experimental-vm-modules $(yarn bin jest)",
     "test:watch": "yarn run test --watch --verbose",
     "pre-commit-checks": "pretty-quick --staged",
     "postinstall": "husky install",

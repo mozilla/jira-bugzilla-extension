@@ -6,6 +6,12 @@ import { jest } from '@jest/globals';
  *
  */
 
+global.console = {
+  log: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
+};
+
 global.browser = {
   action: {
     show: jest.fn(),

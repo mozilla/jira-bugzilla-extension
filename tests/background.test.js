@@ -393,7 +393,7 @@ describe('Background Script', () => {
     });
   });
 
-  describe('getComparisonDataForPopup', () => {
+  describe('getComparisonDataForPopup()', () => {
     it('throws if invalid', async () => {
       const fakeSender = {
         id: 'whatever',
@@ -419,7 +419,7 @@ describe('Background Script', () => {
     });
   });
 
-  describe('handleMessage', () => {
+  describe('handleMessage()', () => {
     it(`should throw if instruction isn't a string`, async () => {
       expect(async () => {
         await BzJira.handleMessage({ instruction: null });
@@ -455,7 +455,7 @@ describe('Background Script', () => {
     });
   });
 
-  describe('setIconBadge', () => {
+  describe('setIconBadge()', () => {
     it('should set the right icon if matching', () => {
       const fakeData = {
         bugId: '123456',
