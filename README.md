@@ -1,5 +1,8 @@
 # Jira-bz Web Extension
 
+![Node.js CI](https://github.com/mozilla/jira-bz/actions/workflows/ci.yml/badge.svg)
+
+
 ## Goals
 
 This is extensions is aiming to make it easier to know what items in
