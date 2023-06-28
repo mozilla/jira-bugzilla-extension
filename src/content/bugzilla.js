@@ -11,7 +11,7 @@ export default class BZContent {
     );
     const restLink = queryLinks.filter((link) => link.textContent === 'REST');
     if (restLink.length) {
-      return restLink[0];
+      return restLink[0].href;
     }
   }
 
