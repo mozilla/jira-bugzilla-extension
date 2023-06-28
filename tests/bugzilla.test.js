@@ -19,6 +19,7 @@ describe('Bugzilla Content Script', () => {
   describe('getBuglistRestURL()', () => {
     it('should get a REST url from the DOM', () => {
       document.body.innerHTML = `<div class="bz_query_links">
+        <a href="http://example.com">Not a rest URL</a>
         <a href="http://example.com">REST</a>
       </div>`;
       const restURL = BZContent.getBuglistRestURL();

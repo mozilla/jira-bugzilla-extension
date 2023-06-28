@@ -6,9 +6,12 @@ export default class BZContent {
    * Finds the REST url from the API link in the page if it exists.
    */
   getBuglistRestURL() {
-    const queryLinks = document.querySelectorAll('.bz_query_links a');
-    if (queryLinks.length && queryLinks[0].textContent === 'REST') {
-      return queryLinks[0].href;
+    const queryLinks = Array.prototype.slice.call(
+      document.querySelectorAll('.bz_query_links a'),
+    );
+    const restLink = queryLinks.filter((link) => link.textContent === 'REST');
+    if (restLink.length) {
+      return restLink[0];
     }
   }
 
