@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: 18
       - name: install deps
-        run: yarn install --immutable
+        run: yarn install --immutable --ignore-platform
       - name: build
         run: yarn build
         env:
