@@ -17,7 +17,8 @@
   },
   "scripts": {
     "lint": "eslint 'src/**/*.{js,mjs}'",
-    "start:firefox": "web-ext run --keep-profile-changes --source-dir ./src/ --pref extensions.manifestV3.enabled=true --firefox='beta'",
+    "dev": "web-ext run --keep-profile-changes --source-dir ./src/ --pref extensions.manifestV3.enabled=true --firefox='beta'",
+    "build": "web-ext build --source-dir ./src/",
     "prettier": "prettier --write '**'",
     "prettier-ci": "prettier -c '**'",
     "test-ci": "yarn run test && yarn run prettier-ci && yarn run lint",
