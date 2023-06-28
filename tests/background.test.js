@@ -158,10 +158,10 @@ describe('Background Script', () => {
 
       await BzJira.getComparisonData('123456', 'JIRA-1234', fakeWindow);
       expect(fakeWindow.fetch.mock.calls[0].toString()).toMatch(
-        /https:\/\/bugzilla.mozilla.org\/rest\/bug\/123456\?/,
+        /https:\/\/bugzilla\.mozilla\.org\/rest\/bug\/123456\?/,
       );
       expect(fakeWindow.fetch.mock.calls[1].toString()).toMatch(
-        /https:\/\/mozilla-hub.atlassian.net\/rest\/api\/latest\/issue\/JIRA-1234/,
+        /https:\/\/mozilla-hub\.atlassian\.net\/rest\/api\/latest\/issue\/JIRA-1234/,
       );
     });
 
