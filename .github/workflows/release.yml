@@ -23,8 +23,9 @@ jobs:
           echo "Error: tag does not match manifest version"
           exit 1
       - name: setup node
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
+          node-version: 18
           cache: 'yarn'
       - name: install deps
         run: yarn install --frozen-lockfile
