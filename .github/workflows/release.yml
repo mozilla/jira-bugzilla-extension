@@ -16,12 +16,16 @@ jobs:
       - name: workaround missing dep in action-web-ext
         working-directory: .github/actions/action-web-ext
         run: npm install
-      - name: Get extension version
-        run: |
-          VERSION=$(node -p "require('./src/manifest.json').version")
-          echo "EXT_VERSION=v$VERSION" >> $GITHUB_ENV
+      - name: get version
+        id: version
+        uses: ./.github/actions/github-action-json-property
+        with:
+          path: 'manifest.json'
+          prop_path: 'version'
       - name: Check version matches tag
-        if: ${{ github.ref_name != env.EXT_VERSION }}
+        with:
+            EXT_VERSION: v${{ steps.version.outputs.prop }}
+        if: ${{ github.ref_name != EXT_VERSION }}
         run: |
           echo "Error: tag does not match manifest version"
           exit 1
@@ -35,7 +39,7 @@ jobs:
       - name: build
         run: yarn build
         env:
-          WEB_EXT_FILENAME: jira-bugzilla-${{ env.EXT_VERSION }}.xpi
+          WEB_EXT_FILENAME: jira-bugzilla-v${{ steps.version.outputs.prop }}.xpi
       - name: release
         uses: actions/create-release@v1
         id: create_release
@@ -44,14 +48,14 @@ jobs:
         with:
           draft: false
           prerelease: false
-          release_name: ${{ env.EXT_VERSION }}
-          tag_name: ${{ env.EXT_VERSION }}
+          release_name: v${{ steps.version.outputs.prop }}
+          tag_name: v${{ steps.version.outputs.prop }}
       - name: "web-ext sign"
         id: web-ext-sign
         uses: ./.github/actions/action-web-ext
         with:
           cmd: sign
-          source: ./web-ext-artifacts/jira-bugzilla-${{ env.EXT_VERSION }}.xpi
+          source: ./web-ext-artifacts/jira-bugzilla-v${{ steps.version.outputs.prop }}.xpi
           channel: unlisted
           apiKey: ${{ secrets.AMO_JWT_ISSUER }}
           apiSecret: ${{ secrets.AMO_JWT_SECRET }}
@@ -63,5 +67,5 @@ jobs:
         with:
           upload_url: ${{steps.create_release.outputs.upload_url}}
           asset_path: ${{steps.web-ext-sign.outputs.target}}
-          asset_name: jira-bugzilla-${{ env.EXT_VERSION }}.xpi
+          asset_name: jira-bugzilla-v${{ step.version.outputs.prop }}.xpi
           asset_content_type: application/x-xpinstall
