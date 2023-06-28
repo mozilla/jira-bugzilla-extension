@@ -16,11 +16,11 @@ jobs:
       - name: Get extension version
         run: |
           VERSION=$(node -p "require('./src/manifest.json').version")
-          echo "EXT_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "EXT_VERSION=v$VERSION" >> $GITHUB_ENV
       - name: Check version matches tag
-        if: ${{ github.ref_name}} != v${{ env.EXT_VERSION }}
+        if: ${{ github.ref_name != env.EXT_VERSION }}
         run: |
-          echo "Error: tag: '${{ github.ref_name }}' does not match version: 'v${{ env.EXT_VERSION }}'"
+          echo "Error: tag: '${{ github.ref_name }}' does not match version: '${{ env.EXT_VERSION }}'"
           exit 1
       - name: setup node
         uses: actions/setup-node@v2
