@@ -1,5 +1,6 @@
 {
-  "name": "jira-bz",
+  "name": "jira-bugzilla-extension",
+  "private": true,
   "packageManager": "yarn@3.5.0",
   "devDependencies": {
     "@testing-library/dom": "^9.3.1",
