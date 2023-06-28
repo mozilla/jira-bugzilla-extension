@@ -13,6 +13,9 @@ jobs:
         with:
           fetch-depth: 0
           submodules: 'true'
+      - name: workaround missing dep in action-web-ext
+        working-directory: .github/actions/action-web-ext
+        run: npm install
       - name: Get extension version
         run: |
           VERSION=$(node -p "require('./src/manifest.json').version")
@@ -26,8 +29,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
+          cache: yarn
       - name: install deps
-        run: yarn install --immutable --ignore-platform
+        run: yarn install --immutable
       - name: build
         run: yarn build
         env:
