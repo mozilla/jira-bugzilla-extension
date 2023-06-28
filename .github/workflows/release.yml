@@ -20,7 +20,7 @@ jobs:
       - name: Check version matches tag
         if: ${{ github.ref_name != env.EXT_VERSION }}
         run: |
-          echo "Error: tag: '${{ github.ref_name }}' does not match version: '${{ env.EXT_VERSION }}'"
+          echo "Error: tag does not match manifest version"
           exit 1
       - name: setup node
         uses: actions/setup-node@v2
@@ -31,7 +31,7 @@ jobs:
       - name: build
         run: yarn build
         env:
-          WEB_EXT_FILENAME: jira-bugzilla-v${{ env.EXT_VERSION }}.xpi
+          WEB_EXT_FILENAME: jira-bugzilla-${{ env.EXT_VERSION }}.xpi
       - name: release
         uses: actions/create-release@v1
         id: create_release
@@ -40,14 +40,14 @@ jobs:
         with:
           draft: false
           prerelease: false
-          release_name: v${{ env.EXT_VERSION }}
-          tag_name: v${{ env.EXT_VERSION }}
+          release_name: ${{ env.EXT_VERSION }}
+          tag_name: ${{ env.EXT_VERSION }}
       - name: "web-ext sign"
         id: web-ext-sign
         uses: ./.github/actions/action-web-ext
         with:
           cmd: sign
-          source: ./web-ext-artifacts/jira-bugzilla-v${{ env.EXT_VERSION }}.xpi
+          source: ./web-ext-artifacts/jira-bugzilla-${{ env.EXT_VERSION }}.xpi
           channel: unlisted
           apiKey: ${{ secrets.AMO_JWT_ISSUER }}
           apiSecret: ${{ secrets.AMO_JWT_SECRET }}
@@ -59,5 +59,5 @@ jobs:
         with:
           upload_url: ${{steps.create_release.outputs.upload_url}}
           asset_path: ${{steps.web-ext-sign.outputs.target}}
-          asset_name: jira-bugzilla-v${{ env.EXT_VERSION }}.xpi
+          asset_name: jira-bugzilla-${{ env.EXT_VERSION }}.xpi
           asset_content_type: application/x-xpinstall
