@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "jira-bugzilla",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "browser_specific_settings": {
         "gecko": {
             "id": "jira-bz@mozilla.internal",
