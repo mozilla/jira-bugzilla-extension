@@ -1,0 +1,12 @@
+{
+  "addons": {
+    "jira-bz@mozilla.internal": {
+      "updates": [
+        {
+          "version": "0.0.2",
+          "update_link": "https://github.com/mozilla/jira-bugzilla-extension/releases/download/v0.0.2/jira-bugzilla-v0.0.2.xpi"
+        }
+      ]
+    }
+  }
+}
