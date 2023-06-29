@@ -23,7 +23,7 @@ jobs:
           path: 'manifest.json'
           prop_path: 'version'
       - name: Check version matches tag
-        if: github.ref_name != 'v'steps.version.outputs.prop
+        if: github.ref_name != v${{ steps.version.outputs.prop }}
         run: |
           echo "Error: tag does not match manifest version"
           exit 1
