@@ -65,5 +65,5 @@ jobs:
         with:
           upload_url: ${{steps.create_release.outputs.upload_url}}
           asset_path: ${{steps.web-ext-sign.outputs.target}}
-          asset_name: jira-bugzilla-v${{ step.version.outputs.prop }}.xpi
+          asset_name: jira-bugzilla-v${{ steps.version.outputs.prop }}.xpi
           asset_content_type: application/x-xpinstall
