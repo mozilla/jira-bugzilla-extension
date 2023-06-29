@@ -24,9 +24,13 @@ const projectRoot = path.join(__dirname, '../');
   }
 
   const repo = 'mozilla/jira-bugzilla-extension';
-  const extName = manifest.name;
-  const version = manifest.version;
-  const id = manifest.browser_specific_settings.gecko.id;
+  const {
+    browser_specific_settings: {
+      gecko: { id },
+    },
+    name,
+    version,
+  } = manifest;
 
   const updateData = {
     addons: {
@@ -34,7 +38,7 @@ const projectRoot = path.join(__dirname, '../');
         updates: [
           {
             version,
-            update_link: `https://github.com/${repo}/releases/download/v${version}/${extName}-v${version}.xpi`,
+            update_link: `https://github.com/${repo}/releases/download/v${version}/${name}-v${version}.xpi`,
           },
         ],
       },
