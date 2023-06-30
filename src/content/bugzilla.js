@@ -1,4 +1,4 @@
-import * as config from '../shared/config.js';
+import config from '../shared/config.js';
 import * as util from '../shared/util.js';
 
 export default class BZContent {

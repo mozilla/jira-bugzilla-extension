@@ -4,7 +4,7 @@
  */
 
 import * as util from '../src/shared/util.js';
-import * as config from '../src/shared/config.js';
+import config from '../src/shared/config.js';
 
 describe('util', () => {
   describe('getBugId()', () => {
