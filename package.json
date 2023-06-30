@@ -17,9 +17,11 @@
     "web-ext": "^7.6.0"
   },
   "scripts": {
-    "lint": "eslint 'src/**/*.{js,mjs}'",
+    "lint": "eslint 'src/**/*.{js,mjs}' 'bin/*.js'",
     "dev": "web-ext run --keep-profile-changes --source-dir ./src/ --pref extensions.manifestV3.enabled=true --firefox='beta'",
     "build": "web-ext build --source-dir ./src/",
+    "build-updates-json": "bin/buildUpdatesJSON.js",
+    "test-updates-json": "bin/testUpdatesJSON.js",
     "prettier": "prettier --write '**'",
     "prettier-ci": "prettier -c '**'",
     "test-ci": "yarn run test && yarn run prettier-ci && yarn run lint",
