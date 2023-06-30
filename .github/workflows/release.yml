@@ -32,10 +32,10 @@ jobs:
         with:
           node-version: 18
           cache: yarn
-      - name: test updates.json matches manifest version
-        run: yarn test-updates-json
       - name: install deps
         run: yarn install --immutable
+      - name: test updates.json matches manifest version
+        run: yarn test-updates-json
       - name: run tests
         run: yarn test-ci
       - name: build
