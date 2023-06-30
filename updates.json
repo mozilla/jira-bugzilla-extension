@@ -1,10 +1,15 @@
 {
   "addons": {
-    "jira-bz@mozilla.internal": {
+    "jira-bz@mozilla-internal": {
       "updates": [
         {
           "version": "0.0.3",
-          "update_link": "https://github.com/mozilla/jira-bugzilla-extension/releases/download/v0.0.3/jira-bugzilla-v0.0.3.xpi"
+          "update_link": "https://github.com/mozilla/jira-bugzilla-extension/releases/download/v0.0.3/jira-bugzilla-v0.0.3.xpi",
+          "applications": {
+            "gecko": {
+              "strict_min_version": "112.0"
+            }
+          }
         }
       ]
     }

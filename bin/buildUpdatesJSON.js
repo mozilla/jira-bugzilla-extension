@@ -13,12 +13,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.join(__dirname, '../');
 
 (async function main() {
-  let manifest;
+  let manifestData;
   try {
-    const manifestData = await readFile(
+    const manifest = await readFile(
       path.join(projectRoot, 'src/manifest.json'),
     );
-    manifest = JSON.parse(manifestData);
+    manifestData = JSON.parse(manifest);
+  } catch (err) {
+    console.error(err);
+  }
+
+  let oldUpdateData;
+  try {
+    const updateData = await readFile(path.join(projectRoot, 'updates.json'));
+    oldUpdateData = JSON.parse(updateData);
   } catch (err) {
     console.error(err);
   }
@@ -26,21 +34,48 @@ const projectRoot = path.join(__dirname, '../');
   const repo = 'mozilla/jira-bugzilla-extension';
   const {
     browser_specific_settings: {
-      gecko: { id },
+      gecko: { id, strict_min_version },
     },
     name,
     version,
-  } = manifest;
+  } = manifestData;
 
-  const updateData = {
+  if (!oldUpdateData) {
+    oldUpdateData = {
+      addons: {
+        [id]: {
+          updates: [],
+        },
+      },
+    };
+  }
+
+  const oldUpdates = oldUpdateData.addons[id].updates;
+  const filteredUpdates = oldUpdates.filter(
+    (update) => update.version !== version,
+  );
+
+  if (oldUpdates.length !== filteredUpdates.length) {
+    console.log('Version already exists in updates.json');
+  }
+
+  const newVersion = {
+    version,
+    update_link: `https://github.com/${repo}/releases/download/v${version}/${name}-v${version}.xpi`,
+  };
+
+  if (strict_min_version) {
+    newVersion.applications = {
+      gecko: {
+        strict_min_version,
+      },
+    };
+  }
+
+  const newUpdateData = {
     addons: {
       [id]: {
-        updates: [
-          {
-            version,
-            update_link: `https://github.com/${repo}/releases/download/v${version}/${name}-v${version}.xpi`,
-          },
-        ],
+        updates: [newVersion, ...filteredUpdates],
       },
     },
   };
@@ -48,7 +83,7 @@ const projectRoot = path.join(__dirname, '../');
   try {
     await writeFile(
       path.join(projectRoot, 'updates.json'),
-      JSON.stringify(updateData, null, 2),
+      JSON.stringify(newUpdateData, null, 2),
     );
   } catch (err) {
     console.error(err);
