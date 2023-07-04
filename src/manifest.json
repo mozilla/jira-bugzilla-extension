@@ -17,7 +17,8 @@
         {
             "matches": [
                 "https://bugzilla.mozilla.org/buglist.cgi*",
-                "https://bugzilla.mozilla.org/show_bug.cgi*"
+                "https://bugzilla.mozilla.org/show_bug.cgi*",
+                "https://bugzilla.mozilla.org/enter_bug.cgi*"
             ],
             "js": ["content_script_wrapper.js"]
         }

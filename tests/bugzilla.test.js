@@ -4,7 +4,16 @@
  */
 
 import { jest } from '@jest/globals';
-import { findByText } from '@testing-library/dom';
+import {
+  waitFor,
+  getByText,
+  getAllByText,
+  findByText,
+  queryByText,
+  fireEvent,
+} from '@testing-library/dom';
+// Skipping for now, since not sure if this feature makes sense.
+import '@testing-library/jest-dom';
 
 import config from '../src/shared/config.js';
 import BZContentScript from '../src/content/bugzilla';
@@ -297,7 +306,125 @@ describe('Bugzilla Content Script', () => {
     });
   });
 
+  describe('whiteboardTagging()', () => {
+    beforeEach(() => {
+      document.body.innerHTML = `
+        <select name="component" id="component" aria-labelledby="component-help-link">
+           <option value="about:logins">about:logins</option>
+           <option value="Firefox View" selected="">Firefox View</option>
+        </select>
+
+        <input name="status_whiteboard" id="status_whiteboard" value="" aria-labelledby="status_whiteboard-help-link">
+      `;
+
+      BZContent.getWhiteboardConfigForComponent = jest.fn();
+      BZContent.getWhiteboardConfigForComponent.mockReturnValue([
+        '[fidefe-test-one]',
+        '[fidefe-test-two]',
+      ]);
+    });
+
+    it(`should add a select to add a whiteboard tag if there's a config`, async () => {
+      BZContent.whiteboardTagging();
+      await waitFor(() => {
+        expect(
+          getByText(document.body, '[fidefe-test-one]'),
+        ).toBeInTheDocument();
+        expect(
+          getByText(document.body, 'Add Jira Whiteboard Tag'),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it(`should remove the select and button if there's no config`, async () => {
+      BZContent.whiteboardTagging();
+      const component = document.getElementById('component');
+      const option = document.querySelector(
+        '#component option[value="about:logins"]',
+      );
+      component.value = option.value;
+      BZContent.getWhiteboardConfigForComponent.mockReturnValue(null);
+
+      fireEvent.change(component);
+
+      await waitFor(() => {
+        expect(
+          queryByText(document.body, '[fidefe-test-one]'),
+        ).not.toBeInTheDocument();
+        expect(
+          queryByText(document.body, 'Add Jira Whiteboard Tag'),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it('should only add one select if called multiple times', async () => {
+      BZContent.whiteboardTagging();
+      BZContent.whiteboardTagging();
+      await waitFor(() => {
+        expect(getAllByText(document.body, '[fidefe-test-one]').length).toBe(1);
+        expect(
+          getAllByText(document.body, 'Add Jira Whiteboard Tag').length,
+        ).toBe(1);
+      });
+    });
+
+    it('should disable the button if the selected string is already added', async () => {
+      BZContent.whiteboardTagging();
+      let button;
+      await waitFor(() => {
+        expect(
+          getByText(document.body, '[fidefe-test-one]'),
+        ).toBeInTheDocument();
+        expect(
+          (button = getByText(document.body, 'Add Jira Whiteboard Tag')),
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.click(button);
+      expect(button.getAttribute('disabled')).toBe('true');
+    });
+
+    // Skipping for now, since not sure if this feature makes sense.
+    it.skip('should replace the string in the whiteboard input if it starts with the same prefix', async () => {
+      const wbInput = document.getElementById('status_whiteboard');
+      wbInput.value = '[fidefe-whatever]';
+      BZContent.whiteboardTagging();
+
+      let button;
+      await waitFor(() => {
+        expect(
+          getByText(document.body, '[fidefe-test-one]'),
+        ).toBeInTheDocument();
+        expect(
+          (button = getByText(document.body, 'Add Jira Whiteboard Tag')),
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.click(button);
+      expect(wbInput.value).not.toContain('[fidefe-whatever]');
+    });
+  });
+
+  describe('initEnterBug()', () => {
+    it('should call whitboardTagging', () => {
+      BZContent.whiteboardTagging = jest.fn();
+      BZContent.initEnterBug();
+      expect(BZContent.whiteboardTagging).toHaveBeenCalled();
+    });
+  });
+
   describe('init()', () => {
+    it('should call initEnterBug if the url is a bug', () => {
+      const fakeWindow = {
+        location: {
+          href: config.BZ_ENTER_BUG_URL_BASE,
+        },
+      };
+      BZContent.initEnterBug = jest.fn();
+      BZContent.init(fakeWindow);
+      expect(BZContent.initEnterBug).toHaveBeenCalled();
+    });
+
     it('should call initBug if the url is a bug', () => {
       const fakeWindow = {
         location: {
