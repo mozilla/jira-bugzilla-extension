@@ -10,6 +10,7 @@ const config = {
   EXT_ID: browser.runtime.getManifest().browser_specific_settings.gecko.id,
   COMPONENT_JIRA_WHITEBOARD_MAP: {
     'Firefox View': ['[fidefe-firefox-view]', '[fidefe-fxview-backlog]'],
+    'XUL Widgets': ['[fidefe-reusable-components]'],
   },
 };
 
