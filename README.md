@@ -58,6 +58,12 @@ Here'we we're just looking to grab the bug from the URL and then we write the JI
 The BZ bug id and the Jira link are passed back to the background script so that these can be used by the popup script
 in the page action.
 
+For editing the bug with the right configuration, a select appears that allows a choice to enter a JIRA related whiteboard tag. In the future this will be user configurable.
+
+## enter_bug.cgi
+
+When entering bugs, if the configuration matches the component entered as above a select will appear making it easy to add pre-configured whiteboard tags when adding a new bug.
+
 ### The popup script
 
 When activated from the page action a message is sent to the background script to ask it for comparison data.
