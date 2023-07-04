@@ -96,9 +96,11 @@ describe('Popup', () => {
 
     callback(fakeResponse);
 
-    expect(
-      queryByTestId(document.body, 'test-injection'),
-    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        queryByTestId(document.body, 'test-injection'),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('should be noop if no response', async () => {
