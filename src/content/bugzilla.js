@@ -1,7 +1,11 @@
-import * as config from '../shared/config.js';
+import config from '../shared/config.js';
 import * as util from '../shared/util.js';
 
 export default class BZContent {
+  getWhiteboardConfigForComponent(component) {
+    return config.COMPONENT_JIRA_WHITEBOARD_MAP[component] || null;
+  }
+
   /*
    * Finds the REST url from the API link in the page if it exists.
    */
@@ -188,28 +192,105 @@ export default class BZContent {
       instruction: 'identifiersFromBugzilla',
       data: currentBugData,
     });
+
+    // Init whiteboard select for bug editing.
+    this.whiteboardTagging();
   }
 
-  /*
-  handleMessage = (request, sender) => {
-    // Throws if incorrect.
-    util.isValidSender(sender);
+  whiteboardTagging(_window = window) {
+    const componentSelect = document.getElementById('component');
+    const component = componentSelect?.value;
+    const buttonId = 'bz-jira-whiteboard-button';
+    const selectId = 'bz-jira-whiteboard-select';
 
-    if (request.instruction === 'requestBugIds') {
-      console.log('sending data', this.currentBugData);
-      return Promise.resolve({ data: this.currentBugData });
+    // Listen to component changes so this can be re-initialized
+    // as needed.
+    componentSelect?.addEventListener(
+      'change',
+      (e) => {
+        this.whiteboardTagging();
+      },
+      { once: true },
+    );
+
+    // If there's no component there's no point going further.
+    if (!component) {
+      return;
     }
+
+    const whiteboardConfig = this.getWhiteboardConfigForComponent(component);
+
+    // If there's no whiteboardConfig matching the component, remove the select
+    // and button and return early since there's nothing to add.
+    if (!whiteboardConfig) {
+      document.getElementById(buttonId)?.remove();
+      document.getElementById(selectId)?.remove();
+      return;
+    }
+
+    const whiteBoardInput = document.getElementById('status_whiteboard');
+
+    // Return early if there's no whiteboard input, or the select has already been
+    // added.
+    if (!whiteBoardInput || document.getElementById(selectId)) {
+      console.log('no-op');
+      return;
+    }
+
+    // Build the select
+    const wbSelect = document.createElement('select');
+    wbSelect.setAttribute('id', selectId);
+    wbSelect.setAttribute('data-test-id', 'wb-select');
+    for (const tag of whiteboardConfig) {
+      const option = document.createElement('option');
+      option.value = tag;
+      option.textContent = tag;
+      wbSelect.appendChild(option);
+    }
+
+    whiteBoardInput.parentNode.appendChild(wbSelect);
+
+    // Build the button and add events.
+    const button = document.createElement('button');
+    button.setAttribute('id', buttonId);
+    button.textContent = 'Add Jira Whiteboard Tag';
+    button.style.marginInlineStart = '1ex';
+    button.onclick = function (e) {
+      e.preventDefault();
+      const wbInputValue = whiteBoardInput.value;
+      const spacer = wbInputValue.trim() === '' ? '' : ' ';
+      whiteBoardInput.value = `${wbInputValue}${spacer}${wbSelect.value}`;
+      // Call check existing because programmatic value updates
+      // don't fire events.
+      checkExisting(e);
+    };
+
+    const checkExisting = function (e) {
+      if (whiteBoardInput.value.includes(wbSelect.value)) {
+        button.setAttribute('disabled', true);
+      } else {
+        button.removeAttribute('disabled');
+      }
+    };
+
+    whiteBoardInput.addEventListener('input', checkExisting, { once: true });
+    wbSelect.oninput = checkExisting;
+    whiteBoardInput.parentNode.appendChild(button);
+    checkExisting();
   }
-  */
+
+  initEnterBug() {
+    this.whiteboardTagging();
+  }
 
   init(_window = window) {
-    if (_window.location.href.startsWith(config.BZ_BUGLIST_URL_BASE)) {
-      return this.initBuglist();
-    }
+    const currentHref = _window.location.href;
 
-    if (_window.location.href.startsWith(config.BZ_BUG_URL_BASE)) {
-      // Content script should listen for messages from the background.
-      // browser.runtime.onMessage.addListener(this.handleMessage);
+    if (currentHref.startsWith(config.BZ_ENTER_BUG_URL_BASE)) {
+      return this.initEnterBug();
+    } else if (currentHref.startsWith(config.BZ_BUGLIST_URL_BASE)) {
+      return this.initBuglist();
+    } else if (currentHref.startsWith(config.BZ_BUG_URL_BASE)) {
       return this.initBug();
     }
   }

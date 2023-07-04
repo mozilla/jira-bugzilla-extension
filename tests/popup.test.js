@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 import {
   getByText,
   getByTestId,
+  queryByTestId,
   findByText,
   waitFor,
 } from '@testing-library/dom';
@@ -75,6 +76,30 @@ describe('Popup', () => {
       expect(
         getByText(document.body, /This is an error message/),
       ).toBeInTheDocument();
+    });
+  });
+
+  it('should escape HTML in data', async () => {
+    const fakeResponse = {
+      comparisonData: {
+        error: '<span data-test-id="test-injection"></span>',
+        errorTitle: 'error-title',
+      },
+      bugId: '123456',
+      jiraIssueIds: [],
+    };
+
+    await import('../src/popup.js');
+
+    // Get the callback function and call it with a fake response.
+    const callback = browser.runtime.sendMessage.mock.calls[0][1];
+
+    callback(fakeResponse);
+
+    await waitFor(() => {
+      expect(
+        queryByTestId(document.body, 'test-injection'),
+      ).not.toBeInTheDocument();
     });
   });
 

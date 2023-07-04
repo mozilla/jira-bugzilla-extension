@@ -1,4 +1,4 @@
-import * as config from './config.js';
+import config from './config.js';
 
 export function isValidSender(sender) {
   if (!sender || sender.id !== config.EXT_ID) {

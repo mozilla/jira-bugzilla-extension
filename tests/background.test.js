@@ -4,7 +4,7 @@
  */
 
 import { jest } from '@jest/globals';
-import * as config from '../src/shared/config.js';
+import config from '../src/shared/config.js';
 import BzJiraBackground from '../src/background';
 
 const BzJira = new BzJiraBackground();
