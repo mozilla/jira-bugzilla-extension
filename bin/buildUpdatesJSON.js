@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.join(__dirname, '../');
 
-(async function main() {
+export async function main() {
   let manifestData;
   try {
     const manifest = await readFile(
@@ -88,4 +88,8 @@ const projectRoot = path.join(__dirname, '../');
   } catch (err) {
     console.error(err);
   }
-})();
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main();
+}

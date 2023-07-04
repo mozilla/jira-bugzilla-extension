@@ -1,54 +1,58 @@
 {
-    "manifest_version": 3,
-    "name": "jira-bugzilla",
-    "version": "0.0.4",
-    "browser_specific_settings": {
-        "gecko": {
-            "id": "jira-bz@mozilla-internal",
-            "strict_min_version": "112.0",
-            "update_url": "https://raw.githubusercontent.com/mozilla/jira-bugzilla-extension/main/updates.json"
-        }
-    },
-    "background": {
-        "scripts": ["background.js"],
-        "type": "module"
-    },
-    "content_scripts": [
-        {
-            "matches": [
-                "https://bugzilla.mozilla.org/buglist.cgi*",
-                "https://bugzilla.mozilla.org/show_bug.cgi*",
-                "https://bugzilla.mozilla.org/enter_bug.cgi*"
-            ],
-            "js": ["content_script_wrapper.js"]
-        }
+  "manifest_version": 3,
+  "name": "jira-bugzilla",
+  "version": "0.0.4",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "jira-bz@mozilla-internal",
+      "strict_min_version": "112.0",
+      "update_url": "https://raw.githubusercontent.com/mozilla/jira-bugzilla-extension/main/updates.json"
+    }
+  },
+  "background": {
+    "scripts": [
+      "background.js"
     ],
-    "action": {
-        "default_title": "jira-bugzilla",
-        "default_icon": {
-            "48": "icons/jira-48.png"
-        },
-        "default_popup": "popup.html"
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://bugzilla.mozilla.org/buglist.cgi*",
+        "https://bugzilla.mozilla.org/show_bug.cgi*",
+        "https://bugzilla.mozilla.org/enter_bug.cgi*"
+      ],
+      "js": [
+        "content_script_wrapper.js"
+      ]
+    }
+  ],
+  "action": {
+    "default_title": "jira-bugzilla",
+    "default_icon": {
+      "48": "icons/jira-48.png"
     },
-    "permissions": [
-        "scripting",
-        "storage"
-    ],
-    "host_permissions": [
-        "https://bugzilla.mozilla.org/*",
-        "https://mozilla-hub.atlassian.net/*"
-    ],
-    "web_accessible_resources": [
-        {
-            "resources": [
-                "icons/*",
-                "shared/*",
-                "vendor/lit-html/*",
-                "content/bugzilla.js"
-            ],
-            "matches": [
-                "https://bugzilla.mozilla.org/*"
-            ]
-        }
-    ]
- }
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://bugzilla.mozilla.org/*",
+    "https://mozilla-hub.atlassian.net/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*",
+        "shared/*",
+        "vendor/lit-html/*",
+        "content/bugzilla.js"
+      ],
+      "matches": [
+        "https://bugzilla.mozilla.org/*"
+      ]
+    }
+  ]
+}
