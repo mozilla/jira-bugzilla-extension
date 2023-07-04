@@ -62,15 +62,14 @@ export async function main() {
       path.join(projectRoot, 'src/manifest.json'),
       JSON.stringify(newManifestData, null, 2),
     );
-    console.log(JSON.stringify(newManifestData, null, 2));
-    console.log('Writing src/manifest.json');
+    console.log(`Writing new version ${newVersion} to src/manifest.json`);
   } catch (err) {
     console.error(err);
   }
 
   try {
     await buildUpdatesJSON();
-    console.log('Updating updates.json');
+    console.log(`Updating updates.json for ${newVersion}`);
   } catch (err) {
     console.error(err);
   }
