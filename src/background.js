@@ -332,7 +332,15 @@ export default class BzJira {
       }
     } else {
       browser.action.setBadgeBackgroundColor({ color: 'transparent', tabId });
-      browser.action.setBadgeText({ text: '⭕️', tabId });
+
+      if (
+        comparisonData?.error.includes(`Make sure you're logged into JIRA!`)
+      ) {
+        browser.action.setBadgeText({ text: '⚠️', tabId });
+      } else {
+        browser.action.setBadgeText({ text: '⭕️', tabId });
+      }
+
       if (bugId) {
         browser.action.setTitle({
           title: `No Jira ticket associated with this bug`,

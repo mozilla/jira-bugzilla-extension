@@ -518,13 +518,13 @@ describe('Background Script', () => {
       };
       BzJira.setIconBadge(fakeData, 'fakeTabId');
       expect(browser.action.setBadgeText).toHaveBeenCalledWith({
-        text: '⭕️',
+        text: '⚠️',
         tabId: 'fakeTabId',
       });
       expect(browser.action.enable).toHaveBeenCalled();
     });
 
-    it(`should set the right text if there's an issues`, () => {
+    it(`should set the right text if there's an issue`, () => {
       const fakeData = { bugId: '123456', jiraIssueIds: [] };
       BzJira.setIconBadge(fakeData, 'fakeTabId');
       expect(browser.action.setTitle).toHaveBeenCalledWith({
