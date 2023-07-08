@@ -2,6 +2,11 @@
 
 ![Node.js CI](https://github.com/mozilla/jira-bz/actions/workflows/ci.yml/badge.svg)
 
+
+## Current Status
+
+This project is currently in pre-release development.
+
 ## Goals
 
 This is extensions is aiming to make it easier to know what items in
@@ -58,11 +63,11 @@ Here'we we're just looking to grab the bug from the URL and then we write the JI
 The BZ bug id and the Jira link are passed back to the background script so that these can be used by the popup script
 in the page action.
 
-For editing the bug with the right configuration, a select appears that allows a choice to enter a JIRA related whiteboard tag. In the future this will be user configurable.
+For editing bugs, with the right configuration, configured whiteboard tags are made availble. In the future this will be based on user configuration.
 
 ## enter_bug.cgi
 
-When entering bugs, if the configuration matches the component entered as above a select will appear making it easy to add pre-configured whiteboard tags when adding a new bug.
+When entering bugs, if the configuration matches the component (as mentioned above), configured whiteboard tags are made available when adding a new bug.
 
 ### The popup script
 
